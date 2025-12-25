@@ -105,12 +105,6 @@ export default function PomodoroModal({
     return () => window.clearInterval(interval);
   }, [isRunning]);
 
-  useEffect(() => {
-    if (secondsLeft !== 0 || isComplete) return;
-    setIsRunning(false);
-    setIsComplete(true);
-    // Don't automatically show report - user must click Complete
-  }, [secondsLeft, isComplete]);
 
   const handleStart = async () => {
     setError(null);
@@ -436,7 +430,7 @@ export default function PomodoroModal({
                 value={duration}
                 onChange={(event) => {
                   const value = Number(event.target.value);
-                  if (!Number.isNaN(value)) {
+                  if (!Number.isNaN(value) && value > 0) {
                     setDuration(value);
                     setSecondsLeft(value * 60);
                   }
