@@ -212,47 +212,43 @@ export default function Goals() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
-        {/* Header with Gold, Streak, and XP */}
-        <div className="space-y-3">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-200">
-                Goals & Tasks
-              </h1>
-              <p className="text-gray-400 text-sm mt-1">
-                Keep your vision at the top, and your tasks right below it.
-              </p>
-              {goalsLoading && (
-                <p className="mt-2 text-xs text-gray-500">Refreshing goals...</p>
-              )}
-            </div>
-
-            {/* Time Stats, Gold and Streak - Top Right */}
-            <div className="flex items-center gap-3">
-              <div className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-blue-500/20">
-                <p className="text-xs text-gray-400">Today</p>
-                <p className="text-lg font-bold text-blue-400">{formatTime(todayMinutes)}</p>
-              </div>
-              <div className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-purple-500/20">
-                <p className="text-xs text-gray-400">Week</p>
-                <p className="text-lg font-bold text-purple-400">{formatTime(weekMinutes)}</p>
-              </div>
-              <div className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-yellow-500/20">
-                <p className="text-xs text-gray-400">Gold</p>
-                <p className="text-lg font-bold text-yellow-300">{profile?.gold ?? 0}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowCalendar(true)}
-                className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-orange-500/20 hover:border-orange-500/40 transition-all"
-              >
-                <p className="text-xs text-gray-400">Streak</p>
-                <p className="text-lg font-bold text-orange-400">{profile?.current_streak ?? 0} 🔥</p>
-              </button>
-            </div>
+        {/* Header with Stats and XP */}
+        <div className="space-y-4">
+          {/* Title */}
+          <div className="text-center">
+            <h1 className="text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-200">
+              Level Up
+            </h1>
+            {goalsLoading && (
+              <p className="mt-2 text-xs text-gray-500">Refreshing goals...</p>
+            )}
           </div>
 
-          {/* XP Bar - Below Title */}
+          {/* Stats Grid - Today, Week, Gold, Streak */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-blue-500/20">
+              <p className="text-xs text-gray-400">Today</p>
+              <p className="text-lg font-bold text-blue-400">{formatTime(todayMinutes)}</p>
+            </div>
+            <div className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-purple-500/20">
+              <p className="text-xs text-gray-400">Week</p>
+              <p className="text-lg font-bold text-purple-400">{formatTime(weekMinutes)}</p>
+            </div>
+            <div className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-yellow-500/20">
+              <p className="text-xs text-gray-400">Gold</p>
+              <p className="text-lg font-bold text-yellow-300">{profile?.gold ?? 0}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowCalendar(true)}
+              className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-orange-500/20 hover:border-orange-500/40 transition-all text-left"
+            >
+              <p className="text-xs text-gray-400">Streak</p>
+              <p className="text-lg font-bold text-orange-400">{profile?.current_streak ?? 0} 🔥</p>
+            </button>
+          </div>
+
+          {/* XP Bar */}
           <div className="space-y-1">
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-400">Level {profile?.level ?? 1}</span>
