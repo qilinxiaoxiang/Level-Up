@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pencil, Trash2, BarChart3, Archive, Check } from 'lucide-react';
+import { Pencil, Trash2, BarChart3, Archive, Check, Flame, Zap, Circle } from 'lucide-react';
 import type { Task, TaskCategory, TaskPriority, TaskType } from '../../types';
 import type { TaskInput } from '../../hooks/useTasks';
 import { CATEGORY_EMOJIS, PRIORITY_COLORS } from '../../types';
@@ -150,43 +150,56 @@ export default function TaskCard({
     setIsEditing(false);
   };
 
+  const isGolden = task.is_completed || isDailyDone;
+
   return (
     <div
-      className={`rounded-lg border shadow-lg space-y-2 p-3 transition-all ${
-        task.is_completed
-          ? 'bg-slate-800 border-purple-500/20'
-          : isDailyDone
-          ? 'bg-slate-800 border-emerald-400/40'
-          : 'bg-slate-800 border-purple-500/20'
+      className={`rounded-lg border space-y-2 p-3 transition-all relative overflow-hidden ${
+        isGolden
+          ? 'bg-gradient-to-br from-amber-200 via-yellow-100 to-amber-300 border-amber-300 shadow-[0_0_25px_rgba(251,191,36,0.8),0_0_50px_rgba(251,191,36,0.4)]'
+          : 'bg-slate-800 border-purple-500/20 shadow-lg'
       }`}
     >
+      {/* Golden metallic shine effect overlay */}
+      {isGolden && (
+        <>
+          {/* Top bright highlight */}
+          <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+          {/* Diagonal shine streak */}
+          <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+            <div className="absolute top-0 -left-1/4 w-1/2 h-full bg-gradient-to-br from-white/40 via-amber-100/30 to-transparent transform -skew-x-12" />
+          </div>
+          {/* Multiple corner glows */}
+          <div className="absolute top-2 right-2 w-12 h-12 bg-white/30 rounded-full blur-xl" />
+          <div className="absolute bottom-2 left-2 w-10 h-10 bg-amber-200/40 rounded-full blur-lg" />
+        </>
+      )}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-2">
           <div className="text-xl">{categoryEmoji}</div>
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">
-              {task.task_type === 'daily' ? 'Daily Quest' : 'One-Time Quest'}
-            </p>
             {isEditing ? (
               <input
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                className="mt-1 w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm"
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm"
               />
             ) : (
-              <h3
-                className={`text-sm font-semibold mt-1 ${
-                  task.is_completed || isDailyDone
-                    ? 'text-gray-300 line-through'
-                    : 'text-white'
-                }`}
-              >
-                {task.title}
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className={`text-base font-bold ${isGolden ? 'text-amber-900' : 'text-white'}`}>
+                  {task.title}
+                </h3>
+                {task.priority === 'high' && (
+                  <Flame size={16} className={isGolden ? 'text-red-700' : 'text-red-400'} title="High priority" />
+                )}
+                {task.priority === 'medium' && (
+                  <Zap size={16} className={isGolden ? 'text-orange-700' : 'text-yellow-400'} title="Medium priority" />
+                )}
+                {task.priority === 'low' && (
+                  <Circle size={14} className={isGolden ? 'text-green-700' : 'text-green-400'} title="Low priority" />
+                )}
+              </div>
             )}
-            <p className={`text-xs font-semibold mt-1 ${PRIORITY_COLORS[task.priority]}`}>
-              {task.priority} priority
-            </p>
           </div>
         </div>
         <button
@@ -199,10 +212,10 @@ export default function TaskCard({
           className={`text-xs font-semibold px-3 py-1 rounded-full ${
             isRunning
               ? 'bg-emerald-500/10 text-emerald-400'
-              : isDailyDone
-              ? 'bg-emerald-500/15 text-emerald-300'
-              : task.is_completed
-              ? 'bg-emerald-500/10 text-emerald-400'
+              : isDailyDone || task.is_completed
+              ? isGolden
+                ? 'bg-amber-800/40 text-amber-900 border border-amber-700/50'
+                : 'bg-emerald-500/15 text-emerald-300'
               : task.is_active
               ? 'bg-green-500/10 text-green-400'
               : 'bg-gray-500/10 text-gray-400'
@@ -300,8 +313,8 @@ export default function TaskCard({
         </div>
       )}
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-[11px] text-gray-400">
+      <div className="space-y-2 relative z-10">
+        <div className={`flex items-center justify-between text-[11px] ${isGolden ? 'text-amber-800' : 'text-gray-400'}`}>
           <span>{task.task_type === 'daily' ? 'Today' : 'Progress'}</span>
           <span>
             {targetMinutes
@@ -310,7 +323,7 @@ export default function TaskCard({
             {overMinutes > 0 && ` (+${overMinutes} min)`}
           </span>
         </div>
-        <div className="relative w-full h-2 rounded-full bg-slate-900 overflow-hidden">
+        <div className={`relative w-full h-2 rounded-full overflow-hidden ${isGolden ? 'bg-amber-300/50' : 'bg-slate-900'}`}>
           <div
             className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all"
             style={{ width: `${Math.round(progressBase * 100)}%` }}
@@ -332,7 +345,7 @@ export default function TaskCard({
           )}
         </div>
         {isDailyDone && (
-          <div className="text-[11px] text-emerald-300 font-semibold">
+          <div className={`text-[11px] font-semibold ${isGolden ? 'text-amber-900' : 'text-emerald-300'}`}>
             ✓ Done today
           </div>
         )}

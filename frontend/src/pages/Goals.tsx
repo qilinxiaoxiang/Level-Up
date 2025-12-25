@@ -13,7 +13,6 @@ import { formatDistanceToNow } from 'date-fns';
 import type { Task } from '../types';
 import { useUserStore } from '../store/useUserStore';
 import { useAuth } from '../hooks/useAuth';
-import StreakDisplay from '../components/dashboard/StreakDisplay';
 
 const GOAL_CONFIG = {
   '3year': { emoji: '🎯', label: '3-Year Goal', color: 'from-blue-600 to-cyan-600' },
@@ -45,6 +44,8 @@ export default function Goals() {
   const [showArchive, setShowArchive] = useState(false);
   const [showBurndownFor, setShowBurndownFor] = useState<Task | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [todayMinutes, setTodayMinutes] = useState(0);
+  const [weekMinutes, setWeekMinutes] = useState(0);
 
   const sortedGoals = useMemo(() => {
     return [...goals].sort((a, b) => {
@@ -120,6 +121,53 @@ export default function Goals() {
   }, [user]);
 
   useEffect(() => {
+    const fetchTimeSummary = async () => {
+      if (!user) return;
+
+      const today = new Date().toISOString().slice(0, 10);
+
+      // Get start of current week (Monday)
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() + diff);
+      const weekStart = monday.toISOString().slice(0, 10);
+
+      try {
+        // Fetch today's pomodoros
+        const { data: todayData } = await supabase
+          .from('pomodoros')
+          .select('duration_minutes')
+          .eq('user_id', user.id)
+          .gte('completed_at', `${today}T00:00:00`)
+          .lt('completed_at', `${today}T23:59:59`);
+
+        if (todayData) {
+          const total = todayData.reduce((sum, p) => sum + (p.duration_minutes || 0), 0);
+          setTodayMinutes(total);
+        }
+
+        // Fetch this week's pomodoros
+        const { data: weekData } = await supabase
+          .from('pomodoros')
+          .select('duration_minutes')
+          .eq('user_id', user.id)
+          .gte('completed_at', `${weekStart}T00:00:00`);
+
+        if (weekData) {
+          const total = weekData.reduce((sum, p) => sum + (p.duration_minutes || 0), 0);
+          setWeekMinutes(total);
+        }
+      } catch (error) {
+        console.error('Failed to fetch time summary:', error);
+      }
+    };
+
+    fetchTimeSummary();
+  }, [user]);
+
+  useEffect(() => {
     if (!activeSession) return;
     const sessionTask = tasks.find((task) => task.id === activeSession.task_id);
     if (sessionTask) {
@@ -153,26 +201,82 @@ export default function Goals() {
     }
   };
 
+  const formatTime = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours === 0) return `${mins}m`;
+    if (mins === 0) return `${hours}h`;
+    return `${hours}h ${mins}m`;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <div className="max-w-6xl mx-auto px-4 py-8 space-y-12">
-        <div className="text-center">
-          <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-200 mb-2">
-            Goals & Tasks
-          </h1>
-          <p className="text-gray-400">
-            Keep your vision at the top, and your tasks right below it.
-          </p>
-          {goalsLoading && (
-            <p className="mt-3 text-xs text-gray-500">Refreshing goals...</p>
-          )}
+      <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+        {/* Header with Gold, Streak, and XP */}
+        <div className="space-y-3">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-200">
+                Goals & Tasks
+              </h1>
+              <p className="text-gray-400 text-sm mt-1">
+                Keep your vision at the top, and your tasks right below it.
+              </p>
+              {goalsLoading && (
+                <p className="mt-2 text-xs text-gray-500">Refreshing goals...</p>
+              )}
+            </div>
+
+            {/* Time Stats, Gold and Streak - Top Right */}
+            <div className="flex items-center gap-3">
+              <div className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-blue-500/20">
+                <p className="text-xs text-gray-400">Today</p>
+                <p className="text-lg font-bold text-blue-400">{formatTime(todayMinutes)}</p>
+              </div>
+              <div className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-purple-500/20">
+                <p className="text-xs text-gray-400">Week</p>
+                <p className="text-lg font-bold text-purple-400">{formatTime(weekMinutes)}</p>
+              </div>
+              <div className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-yellow-500/20">
+                <p className="text-xs text-gray-400">Gold</p>
+                <p className="text-lg font-bold text-yellow-300">{profile?.gold ?? 0}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCalendar(true)}
+                className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-orange-500/20 hover:border-orange-500/40 transition-all"
+              >
+                <p className="text-xs text-gray-400">Streak</p>
+                <p className="text-lg font-bold text-orange-400">{profile?.current_streak ?? 0} 🔥</p>
+              </button>
+            </div>
+          </div>
+
+          {/* XP Bar - Below Title */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-400">Level {profile?.level ?? 1}</span>
+              <span className="text-blue-300 font-medium">
+                {profile?.current_xp ?? 0}/{(profile?.level ?? 1) * 100} XP
+              </span>
+            </div>
+            <div className="w-full bg-slate-800/80 rounded-full h-2.5 border border-slate-700/50">
+              <div
+                className="bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-400 h-2.5 rounded-full transition-all shadow-lg shadow-blue-500/50"
+                style={{
+                  width: `${Math.min(((profile?.current_xp ?? 0) / ((profile?.level ?? 1) * 100)) * 100, 100)}%`,
+                }}
+              />
+            </div>
+          </div>
         </div>
 
-        <section className="space-y-6">
+        {/* Compressed Goal Cards */}
+        <section className="space-y-3">
           {!hasAllGoals ? (
             <GoalSetupForm />
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-3">
               {sortedGoals.map((goal) => {
                 const config = GOAL_CONFIG[goal.goal_type];
                 const daysRemaining = Math.ceil(
@@ -184,26 +288,26 @@ export default function Goals() {
                 return (
                   <div
                     key={goal.id}
-                    className="bg-slate-800 rounded-lg p-4 md:p-6 border border-purple-500/20 shadow-lg hover:border-purple-500/40 transition-all"
+                    className="bg-slate-800/60 rounded-lg p-3 border border-purple-500/20 hover:border-purple-500/30 transition-all"
                   >
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center space-x-3">
-                          <div className="text-2xl md:text-3xl">{config.emoji}</div>
+                        <div className="flex items-center space-x-2">
+                          <div className="text-xl">{config.emoji}</div>
                           <div>
                             <h3
-                              className={`text-xs md:text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r ${config.color}`}
+                              className={`text-xs font-semibold text-transparent bg-clip-text bg-gradient-to-r ${config.color}`}
                             >
                               {config.label}
                             </h3>
-                            <span className="text-[10px] md:text-xs text-gray-500">
+                            <span className="text-[10px] text-gray-500">
                               {formatDistanceToNow(new Date(goal.target_date), { addSuffix: true })}
                             </span>
                           </div>
                         </div>
 
                         <div
-                          className={`px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-semibold whitespace-nowrap ${
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap ${
                             daysRemaining > 30
                               ? 'bg-green-500/10 text-green-400'
                               : daysRemaining > 7
@@ -216,15 +320,15 @@ export default function Goals() {
                       </div>
 
                       {isEditing ? (
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                           <textarea
                             value={goalDraft}
                             onChange={(event) => setGoalDraft(event.target.value)}
-                            rows={3}
-                            className="w-full px-3 md:px-4 py-2 md:py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-500 resize-none text-sm md:text-base"
+                            rows={2}
+                            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-500 resize-none text-sm"
                           />
                           {goalError && (
-                            <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm">
+                            <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-2 text-red-400 text-xs">
                               {goalError}
                             </div>
                           )}
@@ -232,14 +336,14 @@ export default function Goals() {
                             <button
                               type="button"
                               onClick={() => saveGoalEdit(goal.id)}
-                              className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold transition-colors"
+                              className="px-2 py-1 rounded bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold transition-colors"
                             >
                               Save
                             </button>
                             <button
                               type="button"
                               onClick={cancelGoalEdit}
-                              className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-gray-200 text-xs font-semibold transition-colors"
+                              className="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-gray-200 text-xs font-semibold transition-colors"
                             >
                               Cancel
                             </button>
@@ -247,14 +351,14 @@ export default function Goals() {
                         </div>
                       ) : (
                         <>
-                          <div className="text-sm md:text-base font-medium text-white whitespace-pre-wrap leading-relaxed">
+                          <div className="text-sm text-white/90 whitespace-pre-wrap leading-snug">
                             {goal.description}
                           </div>
                           <div className="flex justify-end">
                             <button
                               type="button"
                               onClick={() => startGoalEdit(goal.id, goal.description)}
-                              className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-gray-200 text-xs font-semibold transition-colors"
+                              className="px-2 py-1 rounded bg-slate-700/50 hover:bg-slate-600 text-gray-300 text-xs font-semibold transition-colors"
                             >
                               Edit
                             </button>
@@ -269,65 +373,14 @@ export default function Goals() {
           )}
         </section>
 
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-slate-800 rounded-lg p-4 border border-purple-500/20 shadow-lg">
-            <p className="text-xs text-gray-400 uppercase tracking-wide mb-3">Rewards</p>
-            <div className="space-y-3">
-              <div className="bg-slate-900 rounded-lg p-3">
-                <p className="text-xs text-gray-500 mb-1">Gold</p>
-                <p className="text-2xl font-bold text-yellow-300">{profile?.gold ?? 0}</p>
-              </div>
-              <div className="bg-slate-900 rounded-lg p-3 space-y-2">
-                <div className="flex items-baseline justify-between">
-                  <p className="text-xs text-gray-500">Level</p>
-                  <p className="text-2xl font-bold text-blue-300">
-                    {profile?.level ?? 1}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-400">XP Progress</span>
-                    <span className="text-blue-300 font-medium">
-                      {profile?.current_xp ?? 0}/{(profile?.level ?? 1) * 100}
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-950 rounded-full h-1.5">
-                    <div
-                      className="bg-gradient-to-r from-blue-600 to-cyan-400 h-1.5 rounded-full transition-all"
-                      style={{
-                        width: `${((profile?.current_xp ?? 0) / ((profile?.level ?? 1) * 100)) * 100}%`,
-                      }}
-                    />
-                  </div>
-                  {profile && (
-                    <p className="text-[10px] text-gray-500">Total: {profile.total_xp} XP</p>
-                  )}
-                </div>
-              </div>
-            </div>
-            {lastReward && (
-              <div className="mt-3 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded px-2 py-1">
-                +{lastReward.gold} gold, +{lastReward.xp} XP
-              </div>
-            )}
-          </div>
-
-          <StreakDisplay
-            currentStreak={profile?.current_streak ?? 0}
-            restCredits={profile?.rest_credits ?? 0}
-            onOpenCalendar={() => setShowCalendar(true)}
-          />
-        </section>
-
-        <section>
-          <ShopPanel />
-        </section>
-
-        <section className="space-y-6">
+        {/* Tasks Section - Focal Point */}
+        <section className="space-y-6 bg-slate-800/40 rounded-2xl p-6 border-2 border-purple-500/30 shadow-2xl">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-bold text-white">Tasks</h2>
-              <p className="text-gray-400">Build your daily and one-time quests here.</p>
+              <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
+                Tasks
+              </h2>
+              <p className="text-gray-300 mt-1">Build your daily and one-time quests here.</p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -440,6 +493,11 @@ export default function Goals() {
               </div>
             </div>
           </div>
+        </section>
+
+        {/* Shop Panel - Moved to Bottom */}
+        <section>
+          <ShopPanel />
         </section>
       </div>
 
