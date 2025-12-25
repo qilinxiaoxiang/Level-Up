@@ -1,6 +1,3 @@
-// Database types - Generated from Supabase schema
-// TODO: Generate these automatically using Supabase CLI
-
 export type Json =
   | string
   | number
@@ -9,275 +6,712 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export interface Database {
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
+  }
   public: {
     Tables: {
-      user_profiles: {
+      achievements: {
         Row: {
+          category: string | null
+          created_at: string | null
+          criteria: Json | null
+          description: string | null
+          emoji: string | null
+          gold_reward: number | null
           id: string
-          username: string | null
-          created_at: string
-          level: number
-          current_xp: number
-          total_xp: number
-          gold: number
-          current_hp: number
-          max_hp: number
-          strength: number
-          intelligence: number
-          discipline: number
-          focus: number
-          pomodoro_duration: number
-          daily_reset_time: string
-          rest_credits: number
-          current_streak: number
-          longest_streak: number
-          total_pomodoros: number
-          updated_at: string
+          item_reward_id: string | null
+          name: string
+          xp_reward: number | null
         }
         Insert: {
-          id: string
-          username?: string | null
-          created_at?: string
-          level?: number
-          current_xp?: number
-          total_xp?: number
-          gold?: number
-          current_hp?: number
-          max_hp?: number
-          strength?: number
-          intelligence?: number
-          discipline?: number
-          focus?: number
-          pomodoro_duration?: number
-          daily_reset_time?: string
-          rest_credits?: number
-          current_streak?: number
-          longest_streak?: number
-          total_pomodoros?: number
-          updated_at?: string
+          category?: string | null
+          created_at?: string | null
+          criteria?: Json | null
+          description?: string | null
+          emoji?: string | null
+          gold_reward?: number | null
+          id?: string
+          item_reward_id?: string | null
+          name: string
+          xp_reward?: number | null
         }
         Update: {
+          category?: string | null
+          created_at?: string | null
+          criteria?: Json | null
+          description?: string | null
+          emoji?: string | null
+          gold_reward?: number | null
           id?: string
-          username?: string | null
-          created_at?: string
-          level?: number
-          current_xp?: number
-          total_xp?: number
-          gold?: number
-          current_hp?: number
-          max_hp?: number
-          strength?: number
-          intelligence?: number
-          discipline?: number
-          focus?: number
-          pomodoro_duration?: number
-          daily_reset_time?: string
-          rest_credits?: number
-          current_streak?: number
-          longest_streak?: number
-          total_pomodoros?: number
-          updated_at?: string
+          item_reward_id?: string | null
+          name?: string
+          xp_reward?: number | null
         }
+        Relationships: []
+      }
+      active_pomodoros: {
+        Row: {
+          created_at: string | null
+          duration_minutes: number
+          ends_at: string
+          id: string
+          is_active: boolean | null
+          started_at: string
+          task_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration_minutes: number
+          ends_at: string
+          id?: string
+          is_active?: boolean | null
+          started_at: string
+          task_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          duration_minutes?: number
+          ends_at?: string
+          id?: string
+          is_active?: boolean | null
+          started_at?: string
+          task_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      daily_task_completions: {
+        Row: {
+          created_at: string | null
+          date: string
+          gold_earned: number | null
+          id: string
+          is_completed: boolean | null
+          minutes_completed: number | null
+          target_minutes: number
+          task_id: string | null
+          updated_at: string | null
+          user_id: string | null
+          xp_earned: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          gold_earned?: number | null
+          id?: string
+          is_completed?: boolean | null
+          minutes_completed?: number | null
+          target_minutes: number
+          task_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          xp_earned?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          gold_earned?: number | null
+          id?: string
+          is_completed?: boolean | null
+          minutes_completed?: number | null
+          target_minutes?: number
+          task_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          xp_earned?: number | null
+        }
+        Relationships: []
       }
       goals: {
         Row: {
-          id: string
-          user_id: string
-          goal_type: '3year' | '1year' | '1month'
+          created_at: string | null
           description: string
-          created_at: string
-          target_date: string
-          is_active: boolean
-          is_completed: boolean
-          evaluation_note: string | null
           evaluated_at: string | null
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          goal_type: '3year' | '1year' | '1month'
-          description: string
-          created_at?: string
-          target_date: string
-          is_active?: boolean
-          is_completed?: boolean
-          evaluation_note?: string | null
-          evaluated_at?: string | null
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          goal_type?: '3year' | '1year' | '1month'
-          description?: string
-          created_at?: string
-          target_date?: string
-          is_active?: boolean
-          is_completed?: boolean
-          evaluation_note?: string | null
-          evaluated_at?: string | null
-          updated_at?: string
-        }
-      }
-      tasks: {
-        Row: {
+          evaluation_note: string | null
+          goal_type: string
           id: string
-          user_id: string
-          title: string
-          description: string | null
-          category: string | null
-          priority: 'low' | 'medium' | 'high'
-          task_type: 'daily' | 'onetime'
-          target_duration_minutes: number | null
-          deadline: string | null
-          estimated_pomodoros: number | null
-          estimated_minutes: number | null
-          completed_pomodoros: number
-          completed_minutes: number
-          gold_reward: number
-          xp_reward: number
-          special_item_id: string | null
-          is_active: boolean
-          is_completed: boolean
-          completed_at: string | null
-          is_archived: boolean
-          archived_at: string | null
-          is_locked: boolean
-          required_item_id: string | null
-          unlocked_by_task_id: string | null
-          created_at: string
-          updated_at: string
+          is_active: boolean | null
+          is_completed: boolean | null
+          target_date: string
+          updated_at: string | null
+          user_id: string | null
         }
         Insert: {
+          created_at?: string | null
+          description: string
+          evaluated_at?: string | null
+          evaluation_note?: string | null
+          goal_type: string
           id?: string
-          user_id: string
-          title: string
-          description?: string | null
-          category?: string | null
-          priority?: 'low' | 'medium' | 'high'
-          task_type: 'daily' | 'onetime'
-          target_duration_minutes?: number | null
-          deadline?: string | null
-          estimated_pomodoros?: number | null
-          estimated_minutes?: number | null
-          completed_pomodoros?: number
-          completed_minutes?: number
-          gold_reward?: number
-          xp_reward?: number
-          special_item_id?: string | null
-          is_active?: boolean
-          is_completed?: boolean
-          completed_at?: string | null
-          is_archived?: boolean
-          archived_at?: string | null
-          is_locked?: boolean
-          required_item_id?: string | null
-          unlocked_by_task_id?: string | null
-          created_at?: string
-          updated_at?: string
+          is_active?: boolean | null
+          is_completed?: boolean | null
+          target_date: string
+          updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
+          created_at?: string | null
+          description?: string
+          evaluated_at?: string | null
+          evaluation_note?: string | null
+          goal_type?: string
           id?: string
-          user_id?: string
-          title?: string
-          description?: string | null
-          category?: string | null
-          priority?: 'low' | 'medium' | 'high'
-          task_type?: 'daily' | 'onetime'
-          target_duration_minutes?: number | null
-          deadline?: string | null
-          estimated_pomodoros?: number | null
-          estimated_minutes?: number | null
-          completed_pomodoros?: number
-          completed_minutes?: number
-          gold_reward?: number
-          xp_reward?: number
-          special_item_id?: string | null
-          is_active?: boolean
-          is_completed?: boolean
-          completed_at?: string | null
-          is_archived?: boolean
-          archived_at?: string | null
-          is_locked?: boolean
-          required_item_id?: string | null
-          unlocked_by_task_id?: string | null
-          created_at?: string
-          updated_at?: string
+          is_active?: boolean | null
+          is_completed?: boolean | null
+          target_date?: string
+          updated_at?: string | null
+          user_id?: string | null
         }
+        Relationships: []
+      }
+      items: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          emoji: string | null
+          gold_cost: number | null
+          id: string
+          is_purchasable: boolean | null
+          item_type: string
+          name: string
+          rarity: string | null
+          required_level: number | null
+          special_effects: Json | null
+          stat_bonuses: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          emoji?: string | null
+          gold_cost?: number | null
+          id?: string
+          is_purchasable?: boolean | null
+          item_type: string
+          name: string
+          rarity?: string | null
+          required_level?: number | null
+          special_effects?: Json | null
+          stat_bonuses?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          emoji?: string | null
+          gold_cost?: number | null
+          id?: string
+          is_purchasable?: boolean | null
+          item_type?: string
+          name?: string
+          rarity?: string | null
+          required_level?: number | null
+          special_effects?: Json | null
+          stat_bonuses?: Json | null
+        }
+        Relationships: []
       }
       pomodoros: {
         Row: {
-          id: string
-          user_id: string
-          task_id: string | null
-          duration_minutes: number
-          started_at: string
-          completed_at: string | null
-          enemy_type: string | null
-          enemy_name: string | null
-          focus_rating: number | null
           accomplishment_note: string | null
-          gold_earned: number
-          xp_earned: number
+          completed_at: string | null
+          created_at: string | null
+          duration_minutes: number
+          enemy_name: string | null
+          enemy_type: string | null
+          focus_rating: number | null
+          gold_earned: number | null
+          id: string
           item_dropped_id: string | null
-          created_at: string
+          started_at: string
+          task_id: string | null
+          user_id: string | null
+          xp_earned: number | null
         }
         Insert: {
-          id?: string
-          user_id: string
-          task_id?: string | null
-          duration_minutes: number
-          started_at: string
-          completed_at?: string | null
-          enemy_type?: string | null
-          enemy_name?: string | null
-          focus_rating?: number | null
           accomplishment_note?: string | null
-          gold_earned?: number
-          xp_earned?: number
+          completed_at?: string | null
+          created_at?: string | null
+          duration_minutes: number
+          enemy_name?: string | null
+          enemy_type?: string | null
+          focus_rating?: number | null
+          gold_earned?: number | null
+          id?: string
           item_dropped_id?: string | null
-          created_at?: string
+          started_at: string
+          task_id?: string | null
+          user_id?: string | null
+          xp_earned?: number | null
         }
         Update: {
-          id?: string
-          user_id?: string
-          task_id?: string | null
-          duration_minutes?: number
-          started_at?: string
-          completed_at?: string | null
-          enemy_type?: string | null
-          enemy_name?: string | null
-          focus_rating?: number | null
           accomplishment_note?: string | null
-          gold_earned?: number
-          xp_earned?: number
+          completed_at?: string | null
+          created_at?: string | null
+          duration_minutes?: number
+          enemy_name?: string | null
+          enemy_type?: string | null
+          focus_rating?: number | null
+          gold_earned?: number | null
+          id?: string
           item_dropped_id?: string | null
-          created_at?: string
+          started_at?: string
+          task_id?: string | null
+          user_id?: string | null
+          xp_earned?: number | null
         }
+        Relationships: []
       }
-      // Add other tables as needed (items, achievements, etc.)
+      streak_history: {
+        Row: {
+          created_at: string | null
+          ended_at: string | null
+          id: string
+          is_active: boolean | null
+          started_at: string
+          streak_count: number
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          started_at: string
+          streak_count: number
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          started_at?: string
+          streak_count?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          archived_at: string | null
+          category: string | null
+          completed_at: string | null
+          completed_minutes: number | null
+          completed_pomodoros: number | null
+          created_at: string | null
+          deadline: string | null
+          description: string | null
+          estimated_minutes: number | null
+          estimated_pomodoros: number | null
+          gold_reward: number | null
+          id: string
+          is_active: boolean | null
+          is_archived: boolean | null
+          is_completed: boolean | null
+          is_locked: boolean | null
+          priority: string | null
+          required_item_id: string | null
+          special_item_id: string | null
+          target_duration_minutes: number | null
+          task_type: string
+          title: string
+          unlocked_by_task_id: string | null
+          updated_at: string | null
+          user_id: string | null
+          xp_reward: number | null
+        }
+        Insert: {
+          archived_at?: string | null
+          category?: string | null
+          completed_at?: string | null
+          completed_minutes?: number | null
+          completed_pomodoros?: number | null
+          created_at?: string | null
+          deadline?: string | null
+          description?: string | null
+          estimated_minutes?: number | null
+          estimated_pomodoros?: number | null
+          gold_reward?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_archived?: boolean | null
+          is_completed?: boolean | null
+          is_locked?: boolean | null
+          priority?: string | null
+          required_item_id?: string | null
+          special_item_id?: string | null
+          target_duration_minutes?: number | null
+          task_type: string
+          title: string
+          unlocked_by_task_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          xp_reward?: number | null
+        }
+        Update: {
+          archived_at?: string | null
+          category?: string | null
+          completed_at?: string | null
+          completed_minutes?: number | null
+          completed_pomodoros?: number | null
+          created_at?: string | null
+          deadline?: string | null
+          description?: string | null
+          estimated_minutes?: number | null
+          estimated_pomodoros?: number | null
+          gold_reward?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_archived?: boolean | null
+          is_completed?: boolean | null
+          is_locked?: boolean | null
+          priority?: string | null
+          required_item_id?: string | null
+          special_item_id?: string | null
+          target_duration_minutes?: number | null
+          task_type?: string
+          title?: string
+          unlocked_by_task_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          xp_reward?: number | null
+        }
+        Relationships: []
+      }
+      user_achievements: {
+        Row: {
+          achievement_id: string | null
+          id: string
+          unlocked_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          achievement_id?: string | null
+          id?: string
+          unlocked_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          achievement_id?: string | null
+          id?: string
+          unlocked_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_equipment: {
+        Row: {
+          accessory_1_id: string | null
+          accessory_2_id: string | null
+          armor_id: string | null
+          updated_at: string | null
+          user_id: string
+          weapon_id: string | null
+        }
+        Insert: {
+          accessory_1_id?: string | null
+          accessory_2_id?: string | null
+          armor_id?: string | null
+          updated_at?: string | null
+          user_id: string
+          weapon_id?: string | null
+        }
+        Update: {
+          accessory_1_id?: string | null
+          accessory_2_id?: string | null
+          armor_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+          weapon_id?: string | null
+        }
+        Relationships: []
+      }
+      user_inventory: {
+        Row: {
+          acquired_at: string | null
+          id: string
+          item_id: string | null
+          quantity: number | null
+          user_id: string | null
+        }
+        Insert: {
+          acquired_at?: string | null
+          id?: string
+          item_id?: string | null
+          quantity?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          acquired_at?: string | null
+          id?: string
+          item_id?: string | null
+          quantity?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          created_at: string | null
+          current_hp: number | null
+          current_streak: number | null
+          current_xp: number | null
+          daily_reset_time: string | null
+          discipline: number | null
+          focus: number | null
+          gold: number | null
+          id: string
+          intelligence: number | null
+          last_streak_date: string | null
+          level: number | null
+          longest_streak: number | null
+          max_hp: number | null
+          pomodoro_duration: number | null
+          rest_credits: number | null
+          strength: number | null
+          total_pomodoros: number | null
+          total_xp: number | null
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_hp?: number | null
+          current_streak?: number | null
+          current_xp?: number | null
+          daily_reset_time?: string | null
+          discipline?: number | null
+          focus?: number | null
+          gold?: number | null
+          id: string
+          intelligence?: number | null
+          last_streak_date?: string | null
+          level?: number | null
+          longest_streak?: number | null
+          max_hp?: number | null
+          pomodoro_duration?: number | null
+          rest_credits?: number | null
+          strength?: number | null
+          total_pomodoros?: number | null
+          total_xp?: number | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_hp?: number | null
+          current_streak?: number | null
+          current_xp?: number | null
+          daily_reset_time?: string | null
+          discipline?: number | null
+          focus?: number | null
+          gold?: number | null
+          id?: string
+          intelligence?: number | null
+          last_streak_date?: string | null
+          level?: number | null
+          longest_streak?: number | null
+          max_hp?: number | null
+          pomodoro_duration?: number | null
+          rest_credits?: number | null
+          strength?: number | null
+          total_pomodoros?: number | null
+          total_xp?: number | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
+      user_shop_items: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          gold_cost: number
+          id: string
+          is_purchased: boolean | null
+          name: string
+          purchased_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          gold_cost: number
+          id?: string
+          is_purchased?: boolean | null
+          name: string
+          purchased_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          gold_cost?: number
+          id?: string
+          is_purchased?: boolean | null
+          name?: string
+          purchased_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      xp_needed_for_level: {
-        Args: { current_level: number }
-        Returns: number
-      }
       add_rewards: {
-        Args: { user_uuid: string; gold_amount: number; xp_amount: number }
+        Args: { gold_amount: number; user_uuid: string; xp_amount: number }
         Returns: Json
       }
+      get_active_goals: {
+        Args: { user_uuid: string }
+        Returns: {
+          days_remaining: number
+          description: string
+          goal_type: string
+          target_date: string
+        }[]
+      }
       update_hp: {
-        Args: { user_uuid: string; hp_change: number }
+        Args: { hp_change: number; user_uuid: string }
         Returns: number
       }
+      xp_needed_for_level: { Args: { current_level: number }; Returns: number }
     }
     Enums: {
       [_ in never]: never
     }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

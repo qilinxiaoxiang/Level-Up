@@ -13,10 +13,11 @@ interface PomodoroModalProps {
   onTaskUpdate: (
     taskId: string,
     updates: {
-      completed_pomodoros: number;
-      completed_minutes: number;
-      is_completed: boolean;
+      completed_pomodoros: number | null;
+      completed_minutes: number | null;
+      is_completed: boolean | null;
       completed_at: string | null;
+      is_active?: boolean | null;
     }
   ) => Promise<void>;
   onRewards: (rewards: { gold: number; xp: number }) => void;
@@ -33,6 +34,11 @@ export interface ActivePomodoro {
   started_at: string;
   ends_at: string;
   is_active: boolean;
+}
+
+interface RewardResult {
+  leveled_up: boolean;
+  new_level: number;
 }
 
 export default function PomodoroModal({
@@ -162,7 +168,7 @@ export default function PomodoroModal({
       setIsSaving(true);
       const completedAt = new Date();
       const durationMinutes = localSession?.duration_minutes ?? activeSession?.duration_minutes ?? duration;
-      const updatedPomodoros = task.completed_pomodoros + 1;
+      const updatedPomodoros = (task.completed_pomodoros || 0) + 1;
       const updatedMinutes = (task.completed_minutes || 0) + durationMinutes;
       const targetPomodoros =
         task.task_type === 'daily'
@@ -171,7 +177,7 @@ export default function PomodoroModal({
             : null
           : task.estimated_minutes ?? (task.estimated_pomodoros ? task.estimated_pomodoros * 25 : null);
       const isCompleted = targetPomodoros ? updatedMinutes >= targetPomodoros : false;
-      const rewards = { gold: task.gold_reward, xp: task.xp_reward };
+      const rewards = { gold: task.gold_reward || 0, xp: task.xp_reward || 0 };
 
       const { error: insertError } = await supabase.from('pomodoros').insert({
         user_id: user.id,
@@ -214,8 +220,9 @@ export default function PomodoroModal({
 
         if (existing) {
           const nextMinutes = (existing.minutes_completed || 0) + durationMinutes;
-          const nextCompleted =
-            task.target_duration_minutes && nextMinutes >= task.target_duration_minutes;
+          const nextCompleted = !!(
+            task.target_duration_minutes && nextMinutes >= task.target_duration_minutes
+          );
 
           await supabase
             .from('daily_task_completions')
@@ -241,8 +248,9 @@ export default function PomodoroModal({
               .eq('task_id', task.id)
               .eq('completed_at', completedAt.toISOString());
 
-            if (rewardResult?.leveled_up) {
-              setLevelUpLevel(rewardResult.new_level);
+            const reward = rewardResult as unknown as RewardResult;
+            if (reward?.leveled_up) {
+              setLevelUpLevel(reward.new_level);
             }
 
             onRewards(rewards);
@@ -277,8 +285,9 @@ export default function PomodoroModal({
               .eq('task_id', task.id)
               .eq('completed_at', completedAt.toISOString());
 
-            if (rewardResult?.leveled_up) {
-              setLevelUpLevel(rewardResult.new_level);
+            const reward = rewardResult as unknown as RewardResult;
+            if (reward?.leveled_up) {
+              setLevelUpLevel(reward.new_level);
             }
 
             onRewards(rewards);
@@ -351,8 +360,9 @@ export default function PomodoroModal({
           .eq('task_id', task.id)
           .eq('completed_at', completedAt.toISOString());
 
-        if (rewardResult?.leveled_up) {
-          setLevelUpLevel(rewardResult.new_level);
+        const reward = rewardResult as unknown as RewardResult;
+        if (reward?.leveled_up) {
+          setLevelUpLevel(reward.new_level);
         }
 
         onRewards(rewards);

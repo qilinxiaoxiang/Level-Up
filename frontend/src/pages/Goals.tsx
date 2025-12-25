@@ -109,7 +109,9 @@ export default function Goals() {
 
       const map: Record<string, number> = {};
       data?.forEach((row) => {
-        map[row.task_id] = row.minutes_completed || 0;
+        if (row.task_id) {
+          map[row.task_id] = row.minutes_completed || 0;
+        }
       });
       setDailyProgress(map);
     };

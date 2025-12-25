@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Task, TaskCategory, TaskPriority } from '../../types';
+import type { Task, TaskCategory, TaskPriority, TaskType } from '../../types';
 import type { TaskInput } from '../../hooks/useTasks';
 import { CATEGORY_EMOJIS, PRIORITY_COLORS } from '../../types';
 
@@ -43,8 +43,8 @@ export default function TaskCard({
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description || '');
-  const [category, setCategory] = useState<TaskCategory | ''>(task.category || '');
-  const [priority, setPriority] = useState<TaskPriority>(task.priority);
+  const [category, setCategory] = useState<TaskCategory | ''>((task.category as TaskCategory) || '');
+  const [priority, setPriority] = useState<TaskPriority>((task.priority as TaskPriority) || 'low');
   const [targetDuration, setTargetDuration] = useState(
     task.target_duration_minutes ? String(task.target_duration_minutes) : ''
   );
@@ -107,7 +107,7 @@ export default function TaskCard({
       description: description.trim() ? description.trim() : undefined,
       category: category || null,
       priority,
-      task_type: task.task_type,
+      task_type: task.task_type as TaskType,
       target_duration_minutes:
         task.task_type === 'daily' ? Number(targetDuration) || null : null,
       deadline:
@@ -132,8 +132,8 @@ export default function TaskCard({
   const handleCancel = () => {
     setTitle(task.title);
     setDescription(task.description || '');
-    setCategory(task.category || '');
-    setPriority(task.priority);
+    setCategory((task.category as TaskCategory) || '');
+    setPriority((task.priority as TaskPriority) || 'low');
     setTargetDuration(task.target_duration_minutes ? String(task.target_duration_minutes) : '');
     setDeadline(task.deadline ? task.deadline.split('T')[0] : '');
     setEstimatedMinutes(
