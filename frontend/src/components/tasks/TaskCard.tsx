@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Pencil, Trash2, BarChart3, Archive, Check } from 'lucide-react';
 import type { Task, TaskCategory, TaskPriority, TaskType } from '../../types';
 import type { TaskInput } from '../../hooks/useTasks';
 import { CATEGORY_EMOJIS, PRIORITY_COLORS } from '../../types';
@@ -219,117 +220,82 @@ export default function TaskCard({
         </button>
       </div>
 
-      {isEditing ? (
-        <textarea
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-          rows={2}
-          className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-gray-500 text-sm"
-        />
-      ) : (
-        <p className="text-xs text-gray-300 line-clamp-2">
-          {task.description || 'No description yet.'}
-        </p>
+      {isEditing && (
+        <>
+          <textarea
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            rows={2}
+            placeholder="Description (optional)"
+            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-gray-500 text-sm"
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Category</label>
+              <select
+                value={category}
+                onChange={(event) => setCategory(event.target.value as TaskCategory | '')}
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
+              >
+                <option value="">Choose category</option>
+                {CATEGORY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Priority</label>
+              <select
+                value={priority}
+                onChange={(event) => setPriority(event.target.value as TaskPriority)}
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
+              >
+                {PRIORITY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+      {isEditing && task.task_type === 'daily' && (
         <div>
-          <label className="block text-xs text-gray-400 mb-1">Category</label>
-          {isEditing ? (
-            <select
-              value={category}
-              onChange={(event) => setCategory(event.target.value as TaskCategory | '')}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
-            >
-              <option value="">Choose category</option>
-              {CATEGORY_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <p className="text-sm text-gray-200">
-              {task.category ? CATEGORY_OPTIONS.find((option) => option.value === task.category)?.label : 'None'}
-            </p>
-          )}
+          <label className="block text-xs text-gray-400 mb-1">Target Minutes</label>
+          <input
+            type="number"
+            min={5}
+            value={targetDuration}
+            onChange={(event) => setTargetDuration(event.target.value)}
+            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm"
+          />
         </div>
-        <div>
-          <label className="block text-xs text-gray-400 mb-1">Priority</label>
-          {isEditing ? (
-            <select
-              value={priority}
-              onChange={(event) => setPriority(event.target.value as TaskPriority)}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
-            >
-              {PRIORITY_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <p className="text-sm text-gray-200">{priority}</p>
-          )}
-        </div>
-      </div>
+      )}
 
-      {task.task_type === 'daily' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Target Minutes</label>
-            {isEditing ? (
-              <input
-                type="number"
-                min={5}
-                value={targetDuration}
-                onChange={(event) => setTargetDuration(event.target.value)}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm"
-              />
-            ) : (
-              <p className="text-sm text-gray-200">
-                {task.target_duration_minutes ? `${task.target_duration_minutes} min` : 'Not set'}
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Total Minutes</label>
-            <p className="text-sm text-gray-200">{task.completed_minutes || 0} min</p>
-          </div>
-        </div>
-      ) : (
+      {isEditing && task.task_type === 'onetime' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs text-gray-400 mb-1">Deadline</label>
-            {isEditing ? (
-              <input
-                type="date"
-                value={deadline}
-                onChange={(event) => setDeadline(event.target.value)}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
-              />
-            ) : (
-              <p className="text-sm text-gray-200">
-                {task.deadline ? task.deadline.split('T')[0] : 'Not set'}
-              </p>
-            )}
+            <input
+              type="date"
+              value={deadline}
+              onChange={(event) => setDeadline(event.target.value)}
+              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
+            />
           </div>
           <div>
             <label className="block text-xs text-gray-400 mb-1">Estimated Minutes</label>
-            {isEditing ? (
-              <input
-                type="number"
-                min={1}
-                value={estimatedMinutes}
-                onChange={(event) => setEstimatedMinutes(event.target.value)}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
-              />
-            ) : (
-              <p className="text-sm text-gray-200">
-                {task.estimated_minutes ??
-                  (task.estimated_pomodoros ? task.estimated_pomodoros * 25 : 'Not set')}
-              </p>
-            )}
+            <input
+              type="number"
+              min={1}
+              value={estimatedMinutes}
+              onChange={(event) => setEstimatedMinutes(event.target.value)}
+              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
+            />
           </div>
         </div>
       )}
@@ -372,10 +338,10 @@ export default function TaskCard({
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs text-gray-400 mb-1">Gold Reward</label>
-          {isEditing ? (
+      {isEditing && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Gold Reward</label>
             <input
               type="number"
               min={0}
@@ -383,13 +349,9 @@ export default function TaskCard({
               onChange={(event) => setGoldReward(event.target.value)}
               className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
             />
-          ) : (
-            <p className="text-sm text-gray-200">{task.gold_reward}</p>
-          )}
-        </div>
-        <div>
-          <label className="block text-xs text-gray-400 mb-1">XP Reward</label>
-          {isEditing ? (
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">XP Reward</label>
             <input
               type="number"
               min={0}
@@ -397,11 +359,9 @@ export default function TaskCard({
               onChange={(event) => setXpReward(event.target.value)}
               className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
             />
-          ) : (
-            <p className="text-sm text-gray-200">{task.xp_reward}</p>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       {error && (
         <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm">
@@ -433,26 +393,29 @@ export default function TaskCard({
               <button
                 type="button"
                 onClick={() => setIsEditing(true)}
-                className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-gray-200 text-xs font-semibold rounded-lg transition-colors"
+                className="w-8 h-8 bg-slate-700 hover:bg-slate-600 text-gray-200 rounded-lg transition-colors flex items-center justify-center"
+                title="Edit"
               >
-                Edit
+                <Pencil size={16} />
               </button>
               {task.task_type === 'onetime' && onBurnDown && (
                 <button
                   type="button"
                   onClick={() => onBurnDown(task)}
-                  className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-gray-200 text-xs font-semibold rounded-lg transition-colors"
+                  className="w-8 h-8 bg-slate-700 hover:bg-slate-600 text-gray-200 rounded-lg transition-colors flex items-center justify-center"
+                  title="Burn-down"
                 >
-                  Burn-down
+                  <BarChart3 size={16} />
                 </button>
               )}
               {task.task_type === 'onetime' && onArchive && !task.is_archived && (
                 <button
                   type="button"
                   onClick={() => onArchive(task)}
-                  className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-gray-200 text-xs font-semibold rounded-lg transition-colors"
+                  className="w-8 h-8 bg-slate-700 hover:bg-slate-600 text-gray-200 rounded-lg transition-colors flex items-center justify-center"
+                  title="Archive"
                 >
-                  Archive
+                  <Archive size={16} />
                 </button>
               )}
               <button
@@ -465,9 +428,10 @@ export default function TaskCard({
                   onDelete(task.id);
                   setConfirmDelete(false);
                 }}
-                className="px-3 py-1.5 bg-red-600/80 hover:bg-red-600 text-white text-xs font-semibold rounded-lg transition-colors"
+                className="w-8 h-8 bg-red-600/80 hover:bg-red-600 text-white rounded-lg transition-colors flex items-center justify-center"
+                title={confirmDelete ? 'Confirm Delete' : 'Delete'}
               >
-                {confirmDelete ? 'Confirm' : 'Delete'}
+                {confirmDelete ? <Check size={16} /> : <Trash2 size={16} />}
               </button>
             </>
           )}

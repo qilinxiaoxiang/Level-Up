@@ -109,7 +109,7 @@ export default function PomodoroModal({
     if (secondsLeft !== 0 || isComplete) return;
     setIsRunning(false);
     setIsComplete(true);
-    setShowReport(true);
+    // Don't automatically show report - user must click Complete
   }, [secondsLeft, isComplete]);
 
   const handleStart = async () => {
@@ -369,6 +369,7 @@ export default function PomodoroModal({
       }
       fetchProfile();
       setShowReport(false);
+      onClose();
     } catch (err) {
       setError((err as Error).message || 'Failed to save pomodoro.');
     } finally {
@@ -404,7 +405,6 @@ export default function PomodoroModal({
           {!isRunning && !isComplete && (
             <p className="text-xs text-gray-500">Select a duration and begin.</p>
           )}
-          {isComplete && <p className="text-sm text-emerald-400">Pomodoro complete!</p>}
         </div>
 
         {!isRunning && !isComplete && !activeSession && (
