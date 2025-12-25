@@ -621,6 +621,20 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
   EXECUTE FUNCTION handle_new_user();
 
 -- ============================================================
+-- MIGRATIONS / CLEANUP STATEMENTS
+-- ============================================================
+
+-- Remove active_days column if it exists (from earlier design)
+ALTER TABLE tasks
+  DROP COLUMN IF EXISTS active_days;
+
+-- Backfill estimated_minutes from estimated_pomodoros if needed
+UPDATE tasks
+SET estimated_minutes = COALESCE(estimated_minutes, estimated_pomodoros * 25)
+WHERE estimated_minutes IS NULL
+  AND estimated_pomodoros IS NOT NULL;
+
+-- ============================================================
 -- DONE!
 -- ============================================================
 -- Your database is now ready!
