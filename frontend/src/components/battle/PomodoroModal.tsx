@@ -53,6 +53,7 @@ export default function PomodoroModal({
 }: PomodoroModalProps) {
   const { user, fetchProfile } = useUserStore();
   const [duration, setDuration] = useState(25);
+  const [customInput, setCustomInput] = useState('25');
   const [secondsLeft, setSecondsLeft] = useState(duration * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [startTime, setStartTime] = useState<Date | null>(null);
@@ -83,6 +84,7 @@ export default function PomodoroModal({
     );
 
     setDuration(sessionDuration);
+    setCustomInput(String(sessionDuration));
     setStartTime(sessionStart);
     setSecondsLeft(remainingSeconds);
     setIsRunning(remainingSeconds > 0);
@@ -410,6 +412,7 @@ export default function PomodoroModal({
                   type="button"
                   onClick={() => {
                     setDuration(option);
+                    setCustomInput(String(option));
                     setSecondsLeft(option * 60);
                   }}
                   className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
@@ -427,9 +430,16 @@ export default function PomodoroModal({
               <input
                 type="number"
                 min={5}
-                value={duration}
+                value={customInput}
                 onChange={(event) => {
-                  const value = Number(event.target.value);
+                  const inputVal = event.target.value;
+                  setCustomInput(inputVal);
+
+                  if (inputVal === '') {
+                    return;
+                  }
+
+                  const value = Number(inputVal);
                   if (!Number.isNaN(value) && value > 0) {
                     setDuration(value);
                     setSecondsLeft(value * 60);
