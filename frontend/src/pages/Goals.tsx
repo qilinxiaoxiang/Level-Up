@@ -184,48 +184,26 @@ export default function Goals() {
                 return (
                   <div
                     key={goal.id}
-                    className="bg-slate-800 rounded-lg p-6 border border-purple-500/20 shadow-lg hover:border-purple-500/40 transition-all"
+                    className="bg-slate-800 rounded-lg p-4 md:p-6 border border-purple-500/20 shadow-lg hover:border-purple-500/40 transition-all"
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start space-x-4 flex-1">
-                        <div className="text-4xl">{config.emoji}</div>
-                        <div className="flex-1 space-y-3">
-                          <div className="flex items-center space-x-2">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center space-x-3">
+                          <div className="text-2xl md:text-3xl">{config.emoji}</div>
+                          <div>
                             <h3
-                              className={`text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r ${config.color}`}
+                              className={`text-xs md:text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r ${config.color}`}
                             >
                               {config.label}
                             </h3>
-                            <span className="text-xs text-gray-500">
-                              • {formatDistanceToNow(new Date(goal.target_date), { addSuffix: true })}
+                            <span className="text-[10px] md:text-xs text-gray-500">
+                              {formatDistanceToNow(new Date(goal.target_date), { addSuffix: true })}
                             </span>
                           </div>
-
-                          {isEditing ? (
-                            <div className="space-y-3">
-                              <textarea
-                                value={goalDraft}
-                                onChange={(event) => setGoalDraft(event.target.value)}
-                                rows={3}
-                                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-500 resize-none"
-                              />
-                              {goalError && (
-                                <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm">
-                                  {goalError}
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="text-lg font-semibold text-white whitespace-pre-wrap leading-relaxed">
-                              {goal.description}
-                            </div>
-                          )}
                         </div>
-                      </div>
 
-                      <div className="text-right flex flex-col items-end gap-3">
                         <div
-                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          className={`px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-semibold whitespace-nowrap ${
                             daysRemaining > 30
                               ? 'bg-green-500/10 text-green-400'
                               : daysRemaining > 7
@@ -233,10 +211,23 @@ export default function Goals() {
                               : 'bg-red-500/10 text-red-400'
                           }`}
                         >
-                          {daysRemaining > 0 ? `${daysRemaining} days left` : 'Overdue'}
+                          {daysRemaining > 0 ? `${daysRemaining}d` : 'Overdue'}
                         </div>
+                      </div>
 
-                        {isEditing ? (
+                      {isEditing ? (
+                        <div className="space-y-3">
+                          <textarea
+                            value={goalDraft}
+                            onChange={(event) => setGoalDraft(event.target.value)}
+                            rows={3}
+                            className="w-full px-3 md:px-4 py-2 md:py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-500 resize-none text-sm md:text-base"
+                          />
+                          {goalError && (
+                            <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm">
+                              {goalError}
+                            </div>
+                          )}
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
@@ -253,16 +244,23 @@ export default function Goals() {
                               Cancel
                             </button>
                           </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => startGoalEdit(goal.id, goal.description)}
-                            className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-gray-200 text-xs font-semibold transition-colors"
-                          >
-                            Edit
-                          </button>
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="text-sm md:text-base font-medium text-white whitespace-pre-wrap leading-relaxed">
+                            {goal.description}
+                          </div>
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => startGoalEdit(goal.id, goal.description)}
+                              className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-gray-200 text-xs font-semibold transition-colors"
+                            >
+                              Edit
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 );
@@ -273,25 +271,45 @@ export default function Goals() {
 
         <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-slate-800 rounded-lg p-4 border border-purple-500/20 shadow-lg">
-            <p className="text-xs text-gray-400 uppercase tracking-wide">Rewards</p>
-            <div className="mt-3 grid grid-cols-2 gap-3">
+            <p className="text-xs text-gray-400 uppercase tracking-wide mb-3">Rewards</p>
+            <div className="space-y-3">
               <div className="bg-slate-900 rounded-lg p-3">
-                <p className="text-xs text-gray-500">Gold</p>
-                <p className="text-2xl font-semibold text-yellow-300">{profile?.gold ?? 0}</p>
+                <p className="text-xs text-gray-500 mb-1">Gold</p>
+                <p className="text-2xl font-bold text-yellow-300">{profile?.gold ?? 0}</p>
               </div>
-              <div className="bg-slate-900 rounded-lg p-3">
-                <p className="text-xs text-gray-500">Level</p>
-                <p className="text-lg font-semibold text-blue-300">
-                  {profile ? `Lv ${profile.level} • ${profile.current_xp}/${profile.level * 100} XP` : 'Lv 1'}
-                </p>
-                {profile && <p className="text-[11px] text-gray-400">Total XP: {profile.total_xp}</p>}
+              <div className="bg-slate-900 rounded-lg p-3 space-y-2">
+                <div className="flex items-baseline justify-between">
+                  <p className="text-xs text-gray-500">Level</p>
+                  <p className="text-2xl font-bold text-blue-300">
+                    {profile?.level ?? 1}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-400">XP Progress</span>
+                    <span className="text-blue-300 font-medium">
+                      {profile?.current_xp ?? 0}/{(profile?.level ?? 1) * 100}
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-950 rounded-full h-1.5">
+                    <div
+                      className="bg-gradient-to-r from-blue-600 to-cyan-400 h-1.5 rounded-full transition-all"
+                      style={{
+                        width: `${((profile?.current_xp ?? 0) / ((profile?.level ?? 1) * 100)) * 100}%`,
+                      }}
+                    />
+                  </div>
+                  {profile && (
+                    <p className="text-[10px] text-gray-500">Total: {profile.total_xp} XP</p>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="mt-1 text-xs text-gray-500">
-              {lastReward
-                ? `Last reward: +${lastReward.gold} gold, +${lastReward.xp} XP`
-                : 'Complete a pomodoro to earn rewards.'}
-            </div>
+            {lastReward && (
+              <div className="mt-3 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded px-2 py-1">
+                +{lastReward.gold} gold, +{lastReward.xp} XP
+              </div>
+            )}
           </div>
 
           <StreakDisplay
