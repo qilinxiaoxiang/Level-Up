@@ -190,13 +190,13 @@ export default function TaskCard({
                   {task.title}
                 </h3>
                 {task.priority === 'high' && (
-                  <Flame size={16} className={isGolden ? 'text-red-700' : 'text-red-400'} title="High priority" />
+                  <Flame size={16} className={isGolden ? 'text-red-700' : 'text-red-400'} />
                 )}
                 {task.priority === 'medium' && (
-                  <Zap size={16} className={isGolden ? 'text-orange-700' : 'text-yellow-400'} title="Medium priority" />
+                  <Zap size={16} className={isGolden ? 'text-orange-700' : 'text-yellow-400'} />
                 )}
                 {task.priority === 'low' && (
-                  <Circle size={14} className={isGolden ? 'text-green-700' : 'text-green-400'} title="Low priority" />
+                  <Circle size={14} className={isGolden ? 'text-green-700' : 'text-green-400'} />
                 )}
               </div>
             )}
