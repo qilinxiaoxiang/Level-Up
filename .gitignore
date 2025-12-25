@@ -1,0 +1,169 @@
+# Environment Variables (IMPORTANT - Never commit these!)
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.production.local
+frontend/.env
+frontend/.env.local
+frontend/.env.development
+frontend/.env.test
+frontend/.env.production
+frontend/.env.production.local
+
+# Dependencies
+node_modules/
+frontend/node_modules/
+*/node_modules/
+
+# Build outputs
+frontend/dist/
+frontend/build/
+dist/
+build/
+*.js.map
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+.cache/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+.temp/
+tmp/
+
+# Package manager locks (optional - some teams commit these)
+# Uncomment if you want to ignore lock files
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# Vite
+.vite/
+vite.config.ts.timestamp-*
+
+# TypeScript
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache
+.parcel-cache
+
+# Next.js (if used later)
+.next/
+out/
+
+# Nuxt.js (if used later)
+.nuxt/
+
+# Gatsby files (if used later)
+.cache/
+public/
+
+# Serverless directories
+.serverless/
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# Local development files
+*.local
+local/
+.local/
+
+# Documentation builds (if using tools like Sphinx)
+docs/_build/
+site/
+
+# Database files (if using local SQLite)
+*.sqlite
+*.sqlite3
+*.db
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# IDE-specific files
+nbproject/
+.nb-gradle/
+*.iml
+*.ipr
+*.iws
+.idea/
+*.launch
+.settings/
+.loadpath
+.recommenders
+
+# User-specific files
+todo.txt
+notes.txt
+scratch.*
