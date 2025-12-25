@@ -498,22 +498,24 @@ export default function Goals() {
       </div>
 
       {isTaskFormOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 px-4">
-          <div className="relative w-full max-w-2xl">
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 px-4 overflow-y-auto py-8">
+          <div className="relative w-full max-w-2xl my-auto">
             <button
               type="button"
               onClick={() => setIsTaskFormOpen(false)}
-              className="absolute -top-10 right-0 text-gray-300 hover:text-white"
+              className="sticky top-0 float-right mb-2 text-gray-300 hover:text-white bg-slate-800/80 rounded-full px-3 py-1 text-sm font-semibold z-10"
             >
               Close ✕
             </button>
-            <TaskForm
-              onCreate={async (input) => {
-                await createTask(input);
-                setIsTaskFormOpen(false);
-              }}
-              loading={tasksLoading}
-            />
+            <div className="clear-both">
+              <TaskForm
+                onCreate={async (input) => {
+                  await createTask(input);
+                  setIsTaskFormOpen(false);
+                }}
+                loading={tasksLoading}
+              />
+            </div>
           </div>
         </div>
       )}

@@ -445,7 +445,7 @@ export default function PomodoroModal({
                     setSecondsLeft(value * 60);
                   }
                 }}
-                className="w-24 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm"
+                className="w-24 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-base"
               />
             </div>
           </div>
@@ -478,7 +478,7 @@ export default function PomodoroModal({
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm"
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-base"
                 placeholder="What did you get done?"
               />
             </div>
