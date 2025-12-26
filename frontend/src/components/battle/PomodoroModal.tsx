@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { useUserStore } from '../../store/useUserStore';
 import type { Task } from '../../types';
 import LevelUpModal from '../common/LevelUpModal';
+import { getLocalDateString } from '../../utils/dateUtils';
 
 interface PomodoroModalProps {
   task: Task;
@@ -206,7 +207,7 @@ export default function PomodoroModal({
       });
 
       if (isDaily) {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = getLocalDateString();
         const { data: existing, error: existingError } = await supabase
           .from('daily_task_completions')
           .select('*')
@@ -295,7 +296,7 @@ export default function PomodoroModal({
         }
 
         if (task.target_duration_minutes) {
-          const today = new Date().toISOString().slice(0, 10);
+          const today = getLocalDateString();
           const { data: dailyTasks } = await supabase
             .from('tasks')
             .select('id')

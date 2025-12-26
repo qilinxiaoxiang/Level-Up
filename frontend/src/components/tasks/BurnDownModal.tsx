@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Task } from '../../types';
+import { getLocalDateString } from '../../utils/dateUtils';
 
 interface BurnDownModalProps {
   task: Task;
@@ -22,7 +23,7 @@ export default function BurnDownModal({ task, onClose }: BurnDownModalProps) {
     endDate.setDate(startDate.getDate() + 7); // Default to 7 days if no proper deadline
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getLocalDateString();
 
   useEffect(() => {
     const fetchPomodoros = async () => {
@@ -56,14 +57,14 @@ export default function BurnDownModal({ task, onClose }: BurnDownModalProps) {
     // Add virtual origin: day before creation
     const dayBefore = new Date(startDate);
     dayBefore.setDate(dayBefore.getDate() - 1);
-    const origin = dayBefore.toISOString().slice(0, 10);
+    const origin = getLocalDateString(dayBefore);
     days.push(origin);
 
     // Add all days from creation to deadline
     const current = new Date(startDate);
     const end = new Date(endDate);
     while (current <= end) {
-      days.push(current.toISOString().slice(0, 10));
+      days.push(getLocalDateString(current));
       current.setDate(current.getDate() + 1);
     }
 

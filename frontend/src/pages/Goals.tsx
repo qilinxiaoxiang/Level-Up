@@ -13,6 +13,7 @@ import { formatDistanceToNow } from 'date-fns';
 import type { Task } from '../types';
 import { useUserStore } from '../store/useUserStore';
 import { useAuth } from '../hooks/useAuth';
+import { getLocalDateString, getLocalWeekStart } from '../utils/dateUtils';
 
 const GOAL_CONFIG = {
   '3year': { emoji: '🎯', label: '3-Year Goal', color: 'from-blue-600 to-cyan-600' },
@@ -99,7 +100,7 @@ export default function Goals() {
   useEffect(() => {
     const fetchDailyProgress = async () => {
       if (!user) return;
-      const today = new Date().toISOString().slice(0, 10);
+      const today = getLocalDateString();
       const { data, error } = await supabase
         .from('daily_task_completions')
         .select('task_id, minutes_completed')
@@ -124,15 +125,8 @@ export default function Goals() {
     const fetchTimeSummary = async () => {
       if (!user) return;
 
-      const today = new Date().toISOString().slice(0, 10);
-
-      // Get start of current week (Monday)
-      const now = new Date();
-      const dayOfWeek = now.getDay();
-      const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-      const monday = new Date(now);
-      monday.setDate(now.getDate() + diff);
-      const weekStart = monday.toISOString().slice(0, 10);
+      const today = getLocalDateString();
+      const weekStart = getLocalWeekStart();
 
       try {
         // Fetch today's pomodoros

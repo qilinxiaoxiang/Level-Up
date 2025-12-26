@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useUserStore } from '../../store/useUserStore';
 import MakeUpDialog from './MakeUpDialog';
+import { getLocalDateString } from '../../utils/dateUtils';
 
 interface CheckInCalendarProps {
   streak: number;
@@ -45,8 +46,8 @@ export default function CheckInCalendar({ streak, restCredits, onClose }: CheckI
         .from('daily_task_completions')
         .select('date,is_completed')
         .eq('user_id', user.id)
-        .gte('date', startOfMonth.toISOString().slice(0, 10))
-        .lte('date', endOfMonth.toISOString().slice(0, 10));
+        .gte('date', getLocalDateString(startOfMonth))
+        .lte('date', getLocalDateString(endOfMonth));
 
       if (!error && data) {
         const map: Record<string, boolean> = {};
@@ -127,7 +128,7 @@ export default function CheckInCalendar({ streak, restCredits, onClose }: CheckI
               <div key={`empty-${index}`} />
             ))}
             {days.map((date) => {
-              const dateKey = date.toISOString().slice(0, 10);
+              const dateKey = getLocalDateString(date);
               const isFuture = date > today;
               const isCompleted = completions[dateKey];
               const isMissed = !isFuture && !isCompleted;

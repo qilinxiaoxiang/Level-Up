@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useUserStore } from '../../store/useUserStore';
 import { Clock, Calendar } from 'lucide-react';
+import { getLocalDateString, getLocalWeekStart } from '../../utils/dateUtils';
 
 export default function TimeSummary() {
   const { user } = useUserStore();
@@ -14,15 +15,8 @@ export default function TimeSummary() {
       if (!user) return;
       setLoading(true);
 
-      const today = new Date().toISOString().slice(0, 10);
-
-      // Get start of current week (Monday)
-      const now = new Date();
-      const dayOfWeek = now.getDay();
-      const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Adjust when Sunday
-      const monday = new Date(now);
-      monday.setDate(now.getDate() + diff);
-      const weekStart = monday.toISOString().slice(0, 10);
+      const today = getLocalDateString();
+      const weekStart = getLocalWeekStart();
 
       try {
         // Fetch today's pomodoros
