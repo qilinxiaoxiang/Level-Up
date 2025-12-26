@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pencil, Trash2, BarChart3, Archive, Check, Flame, Zap, Circle } from 'lucide-react';
 import type { Task, TaskCategory, TaskPriority, TaskType } from '../../types';
 import type { TaskInput } from '../../hooks/useTasks';
 import { CATEGORY_EMOJIS, PRIORITY_COLORS } from '../../types';
+import TaskRelationshipManager, { type TaskRelationshipHandle } from './TaskRelationshipManager';
+import { useUserStore } from '../../store/useUserStore';
 
 interface TaskCardProps {
   task: Task;
@@ -63,6 +65,8 @@ export default function TaskCard({
   const [xpReward, setXpReward] = useState(String(task.xp_reward));
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const { user } = useUserStore();
+  const relationshipRef = useRef<TaskRelationshipHandle | null>(null);
 
   const categoryEmoji = task.category ? CATEGORY_EMOJIS[task.category] : '✨';
   const targetMinutesRaw =
@@ -83,11 +87,14 @@ export default function TaskCard({
       ? Math.max(dailyCompletedMinutes - targetMinutes, 0)
       : 0;
   const overlayWidth = Math.min(Math.round(progressOver * 100), 100);
-  const overlayLeft = Math.max(100 - overlayWidth, 0);
+  const baseWidth =
+    progressOver > 0 ? Math.max(100 - overlayWidth, 0) : Math.round(progressBase * 100);
   const isDailyDone =
     task.task_type === 'daily' &&
     targetMinutes !== null &&
     dailyCompletedMinutes >= targetMinutes;
+  const baseGradient = 'linear-gradient(90deg, #3b82f6 0%, #22d3ee 100%)';
+  const overGradient = 'linear-gradient(90deg, #c084fc 0%, #e879f9 50%, #f472b6 100%)';
 
   useEffect(() => {
     if (!confirmDelete) return;
@@ -124,6 +131,9 @@ export default function TaskCard({
 
     try {
       await onUpdate(task.id, updates);
+      if (relationshipRef.current) {
+        await relationshipRef.current.saveDraft();
+      }
       setIsEditing(false);
     } catch (err) {
       setError((err as Error).message || 'Failed to update task.');
@@ -147,6 +157,7 @@ export default function TaskCard({
     setGoldReward(String(task.gold_reward));
     setXpReward(String(task.xp_reward));
     setError(null);
+    relationshipRef.current?.resetDraft();
     setIsEditing(false);
   };
 
@@ -297,7 +308,7 @@ export default function TaskCard({
               type="date"
               value={deadline}
               onChange={(event) => setDeadline(event.target.value)}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
+              className="date-input w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
             />
           </div>
           <div>
@@ -323,27 +334,26 @@ export default function TaskCard({
             {overMinutes > 0 && ` (+${overMinutes} min)`}
           </span>
         </div>
-        <div className={`relative w-full h-2 rounded-full overflow-hidden ${isGolden ? 'bg-amber-300/50' : 'bg-slate-900'}`}>
-          <div
-            className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all"
-            style={{ width: `${Math.round(progressBase * 100)}%` }}
-          />
-          {progressOver > 0 && (
-            <>
-              <div
-                className="absolute top-0 h-full bg-[linear-gradient(135deg,rgba(56,189,248,0.15),rgba(16,185,129,0.85))]"
-                style={{
-                  width: `${overlayWidth}%`,
-                  left: `${overlayLeft}%`,
-                }}
-              />
-              <div
-                className="absolute top-0 bottom-0 w-0.5 bg-emerald-300"
-                style={{ left: `${overlayLeft}%` }}
-              />
-            </>
-          )}
-        </div>
+        <div
+          className={`relative w-full h-2 rounded-full overflow-hidden ${
+            isGolden ? 'bg-amber-300/50' : 'bg-slate-900'
+          }`}
+          style={
+            progressOver > 0
+              ? {
+                  backgroundImage: `${baseGradient}, ${overGradient}`,
+                  backgroundSize: `${baseWidth}% 100%, ${overlayWidth}% 100%`,
+                  backgroundPosition: 'left, right',
+                  backgroundRepeat: 'no-repeat',
+                }
+              : {
+                  backgroundImage: baseGradient,
+                  backgroundSize: `${baseWidth}% 100%`,
+                  backgroundPosition: 'left',
+                  backgroundRepeat: 'no-repeat',
+                }
+          }
+        />
         {isDailyDone && (
           <div className={`text-[11px] font-semibold ${isGolden ? 'text-amber-900' : 'text-emerald-300'}`}>
             ✓ Done today
@@ -379,6 +389,18 @@ export default function TaskCard({
       {error && (
         <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm">
           {error}
+        </div>
+      )}
+
+      {user && (
+        <div className="relative z-10">
+          <TaskRelationshipManager
+            ref={relationshipRef}
+            task={task}
+            userId={user.id}
+            defaultOpen={isEditing}
+            deferred={isEditing}
+          />
         </div>
       )}
 

@@ -162,6 +162,24 @@ CREATE INDEX idx_tasks_user_type ON tasks(user_id, task_type);
 CREATE INDEX idx_tasks_active ON tasks(user_id, is_active);
 
 -- ============================================================
+-- TASK RELATIONSHIPS (One-Time ↔ Daily Links)
+-- ============================================================
+-- Links one-time tasks to daily tasks for shared time tracking
+CREATE TABLE IF NOT EXISTS task_relationships (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  onetime_task_id UUID NOT NULL,
+  daily_task_id UUID NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(onetime_task_id, daily_task_id)
+);
+
+CREATE INDEX idx_task_relationships_onetime ON task_relationships(onetime_task_id);
+CREATE INDEX idx_task_relationships_daily ON task_relationships(daily_task_id);
+CREATE INDEX idx_task_relationships_user ON task_relationships(user_id);
+
+-- ============================================================
 -- ACTIVE POMODOROS (Single running session per user)
 -- ============================================================
 CREATE TABLE active_pomodoros (
@@ -339,6 +357,7 @@ CREATE TABLE user_shop_items (
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE task_relationships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE active_pomodoros ENABLE ROW LEVEL SECURITY;
 ALTER TABLE daily_task_completions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pomodoros ENABLE ROW LEVEL SECURITY;
@@ -368,6 +387,10 @@ CREATE POLICY "Users can manage own goals" ON goals
 
 -- Policies for tasks
 CREATE POLICY "Users can manage own tasks" ON tasks
+  FOR ALL USING (auth.uid() = user_id);
+
+-- Policies for task_relationships
+CREATE POLICY "Users can manage own task relationships" ON task_relationships
   FOR ALL USING (auth.uid() = user_id);
 
 -- Policies for active_pomodoros

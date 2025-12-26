@@ -22,6 +22,7 @@ A personal productivity application that transforms your daily tasks and goals i
 - Estimated time/duration tracking
 - Burn-down charts to visualize progress vs. deadline
 - Archive completed tasks
+- Link to daily tasks to share time tracking without double-counting statistics
 
 ### Pomodoro System
 - Choose duration: 15, 25, 45, 60 minutes (or custom)
@@ -199,6 +200,7 @@ Complete schema available in `database/schema.sql`, including:
 - `user_profiles` - Character stats and preferences
 - `goals` - 3-tier goal system
 - `tasks` - Daily and one-time tasks
+- `task_relationships` - Links between one-time and daily tasks
 - `pomodoros` - Completed work sessions
 - `daily_task_completions` - Daily progress tracking
 - `active_pomodoros` - Current running sessions

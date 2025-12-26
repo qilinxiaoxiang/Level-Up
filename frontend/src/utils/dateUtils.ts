@@ -19,3 +19,23 @@ export function getLocalWeekStart(date: Date = new Date()): string {
   monday.setDate(date.getDate() + diff);
   return getLocalDateString(monday);
 }
+
+/**
+ * Gets the start of day (00:00:00) in local timezone as UTC ISO string
+ * Use for database queries that need to filter by date range
+ */
+export function getStartOfDayUTC(date: Date = new Date()): string {
+  const localDate = new Date(date);
+  localDate.setHours(0, 0, 0, 0);
+  return localDate.toISOString();
+}
+
+/**
+ * Gets the end of day (23:59:59.999) in local timezone as UTC ISO string
+ * Use for database queries that need to filter by date range
+ */
+export function getEndOfDayUTC(date: Date = new Date()): string {
+  const localDate = new Date(date);
+  localDate.setHours(23, 59, 59, 999);
+  return localDate.toISOString();
+}

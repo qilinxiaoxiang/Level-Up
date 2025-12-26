@@ -13,7 +13,7 @@ import { formatDistanceToNow } from 'date-fns';
 import type { Task } from '../types';
 import { useUserStore } from '../store/useUserStore';
 import { useAuth } from '../hooks/useAuth';
-import { getLocalDateString, getLocalWeekStart } from '../utils/dateUtils';
+import { getLocalDateString, getLocalWeekStart, getStartOfDayUTC, getEndOfDayUTC } from '../utils/dateUtils';
 
 const GOAL_CONFIG = {
   '3year': { emoji: '🎯', label: '3-Year Goal', color: 'from-blue-600 to-cyan-600' },
@@ -101,20 +101,75 @@ export default function Goals() {
     const fetchDailyProgress = async () => {
       if (!user) return;
       const today = getLocalDateString();
+      const utcDate = new Date().toISOString().slice(0, 10);
+
+      // Query for both local and UTC dates to handle transition period
       const { data, error } = await supabase
         .from('daily_task_completions')
-        .select('task_id, minutes_completed')
+        .select('*')
         .eq('user_id', user.id)
-        .eq('date', today);
+        .in('date', [today, utcDate]);
 
-      if (error) return;
+      if (error) {
+        console.error('❌ Error fetching daily progress:', error);
+        return;
+      }
 
-      const map: Record<string, number> = {};
+      // Group records by task_id to find duplicates
+      const taskGroups: Record<string, any[]> = {};
       data?.forEach((row) => {
         if (row.task_id) {
-          map[row.task_id] = row.minutes_completed || 0;
+          if (!taskGroups[row.task_id]) {
+            taskGroups[row.task_id] = [];
+          }
+          taskGroups[row.task_id].push(row);
         }
       });
+
+      // Consolidate duplicates (UTC + local date records)
+      const consolidationPromises: Promise<any>[] = [];
+      const map: Record<string, number> = {};
+
+      Object.entries(taskGroups).forEach(([taskId, records]) => {
+        if (records.length > 1) {
+          const totalMinutes = records.reduce((sum, r) => sum + (r.minutes_completed || 0), 0);
+
+          const primaryRecord = records.find(r => r.date === today) || records[0];
+          const recordsToDelete = records.filter(r => r.id !== primaryRecord.id);
+
+          // Update primary record
+          consolidationPromises.push(
+            supabase
+              .from('daily_task_completions')
+              .update({
+                minutes_completed: totalMinutes,
+                date: today,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', primaryRecord.id)
+          );
+
+          // Delete duplicates
+          if (recordsToDelete.length > 0) {
+            consolidationPromises.push(
+              supabase
+                .from('daily_task_completions')
+                .delete()
+                .in('id', recordsToDelete.map(r => r.id))
+            );
+          }
+
+          map[taskId] = totalMinutes;
+        } else {
+          map[taskId] = records[0].minutes_completed || 0;
+        }
+      });
+
+      // Execute consolidation
+      if (consolidationPromises.length > 0) {
+        await Promise.all(consolidationPromises);
+      }
+
       setDailyProgress(map);
     };
 
@@ -125,17 +180,14 @@ export default function Goals() {
     const fetchTimeSummary = async () => {
       if (!user) return;
 
-      const today = getLocalDateString();
-      const weekStart = getLocalWeekStart();
-
       try {
-        // Fetch today's pomodoros
+        // Fetch today's pomodoros (using UTC timestamps for proper timezone handling)
         const { data: todayData } = await supabase
           .from('pomodoros')
           .select('duration_minutes')
           .eq('user_id', user.id)
-          .gte('completed_at', `${today}T00:00:00`)
-          .lt('completed_at', `${today}T23:59:59`);
+          .gte('completed_at', getStartOfDayUTC())
+          .lte('completed_at', getEndOfDayUTC());
 
         if (todayData) {
           const total = todayData.reduce((sum, p) => sum + (p.duration_minutes || 0), 0);
@@ -143,11 +195,16 @@ export default function Goals() {
         }
 
         // Fetch this week's pomodoros
+        const weekStartDate = new Date();
+        const dayOfWeek = weekStartDate.getDay();
+        const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        weekStartDate.setDate(weekStartDate.getDate() + diff);
+
         const { data: weekData } = await supabase
           .from('pomodoros')
           .select('duration_minutes')
           .eq('user_id', user.id)
-          .gte('completed_at', `${weekStart}T00:00:00`);
+          .gte('completed_at', getStartOfDayUTC(weekStartDate));
 
         if (weekData) {
           const total = weekData.reduce((sum, p) => sum + (p.duration_minutes || 0), 0);
@@ -168,6 +225,19 @@ export default function Goals() {
       setActivePomodoroTask(sessionTask);
     }
   }, [activeSession, tasks]);
+
+  const handleTimeSummaryUpdate = (minutes: number, completedAt: Date) => {
+    const completedDate = getLocalDateString(completedAt);
+    const todayDate = getLocalDateString();
+    if (completedDate === todayDate) {
+      setTodayMinutes((prev) => prev + minutes);
+    }
+
+    const weekStart = getLocalWeekStart();
+    if (completedDate >= weekStart) {
+      setWeekMinutes((prev) => prev + minutes);
+    }
+  };
 
   const startGoalEdit = (goalId: string, description: string) => {
     setEditingGoalId(goalId);
@@ -503,8 +573,28 @@ export default function Goals() {
             </button>
             <div className="clear-both">
               <TaskForm
-                onCreate={async (input) => {
-                  await createTask(input);
+                onCreate={async (input, relatedDailyTaskIds) => {
+                  if (!user) {
+                    throw new Error('User not authenticated');
+                  }
+                  const createdTask = await createTask(input);
+
+                  if (relatedDailyTaskIds.length > 0 && createdTask.task_type === 'onetime') {
+                    const relationshipRows = relatedDailyTaskIds.map((dailyTaskId) => ({
+                      user_id: user.id,
+                      onetime_task_id: createdTask.id,
+                      daily_task_id: dailyTaskId,
+                    }));
+
+                    const { error } = await supabase
+                      .from('task_relationships')
+                      .insert(relationshipRows);
+
+                    if (error) {
+                      throw error;
+                    }
+                  }
+
                   setIsTaskFormOpen(false);
                 }}
                 loading={tasksLoading}
@@ -531,6 +621,7 @@ export default function Goals() {
               [taskId]: (prev[taskId] || 0) + minutes,
             }));
           }}
+          onTimeSummaryUpdate={handleTimeSummaryUpdate}
         />
       )}
 

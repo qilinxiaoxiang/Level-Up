@@ -23,6 +23,7 @@ interface PomodoroModalProps {
   ) => Promise<void>;
   onRewards: (rewards: { gold: number; xp: number }) => void;
   onDailyProgressUpdate?: (taskId: string, minutes: number) => void;
+  onTimeSummaryUpdate?: (minutes: number, completedAt: Date) => void;
 }
 
 const DURATION_OPTIONS = [15, 25, 45, 60];
@@ -51,6 +52,7 @@ export default function PomodoroModal({
   onTaskUpdate,
   onRewards,
   onDailyProgressUpdate,
+  onTimeSummaryUpdate,
 }: PomodoroModalProps) {
   const { user, fetchProfile } = useUserStore();
   const [duration, setDuration] = useState(25);
@@ -180,6 +182,7 @@ export default function PomodoroModal({
       const isCompleted = targetPomodoros ? updatedMinutes >= targetPomodoros : false;
       const rewards = { gold: task.gold_reward || 0, xp: task.xp_reward || 0 };
 
+      // Insert pomodoro record (single source of truth for time tracking)
       const { error: insertError } = await supabase.from('pomodoros').insert({
         user_id: user.id,
         task_id: task.id,
@@ -196,6 +199,23 @@ export default function PomodoroModal({
 
       if (insertError) throw insertError;
 
+      // Fetch related tasks to update them as well
+      const { data: relatedTasks } = await supabase
+        .from('task_relationships')
+        .select('onetime_task_id, daily_task_id')
+        .or(`onetime_task_id.eq.${task.id},daily_task_id.eq.${task.id}`);
+
+      const relatedTaskIds: string[] = [];
+      if (relatedTasks && relatedTasks.length > 0) {
+        relatedTasks.forEach((rel) => {
+          if (rel.onetime_task_id === task.id) {
+            relatedTaskIds.push(rel.daily_task_id);
+          } else if (rel.daily_task_id === task.id) {
+            relatedTaskIds.push(rel.onetime_task_id);
+          }
+        });
+      }
+
       const isDaily = task.task_type === 'daily';
 
       await onTaskUpdate(task.id, {
@@ -206,33 +226,131 @@ export default function PomodoroModal({
         is_active: isDaily ? task.is_active : isCompleted ? false : task.is_active,
       });
 
+      // Update related tasks with the same time duration
+      if (relatedTaskIds.length > 0) {
+        const { data: relatedTasksData } = await supabase
+          .from('tasks')
+          .select('*')
+          .in('id', relatedTaskIds);
+
+        if (relatedTasksData) {
+          for (const relatedTask of relatedTasksData) {
+            const relatedUpdatedMinutes = (relatedTask.completed_minutes || 0) + durationMinutes;
+            const relatedUpdatedPomodoros = (relatedTask.completed_pomodoros || 0) + 1;
+
+            if (relatedTask.task_type === 'daily') {
+              // Update daily task completion
+              const today = getLocalDateString();
+              const utcDate = new Date().toISOString().slice(0, 10);
+
+              const { data: allRecords } = await supabase
+                .from('daily_task_completions')
+                .select('*')
+                .eq('task_id', relatedTask.id)
+                .in('date', [today, utcDate]);
+
+              if (allRecords && allRecords.length > 0) {
+                const totalExistingMinutes = allRecords.reduce((sum, rec) => sum + (rec.minutes_completed || 0), 0);
+                const nextMinutes = totalExistingMinutes + durationMinutes;
+
+                const primaryRecord = allRecords.find(r => r.date === today) || allRecords[0];
+                const recordsToDelete = allRecords.filter(r => r.id !== primaryRecord.id);
+
+                await supabase
+                  .from('daily_task_completions')
+                  .update({
+                    minutes_completed: nextMinutes,
+                    is_completed: !!(relatedTask.target_duration_minutes && nextMinutes >= relatedTask.target_duration_minutes),
+                    updated_at: new Date().toISOString(),
+                    date: today,
+                  })
+                  .eq('id', primaryRecord.id);
+
+                if (recordsToDelete.length > 0) {
+                  await supabase
+                    .from('daily_task_completions')
+                    .delete()
+                    .in('id', recordsToDelete.map((record) => record.id));
+                }
+              } else {
+                await supabase.from('daily_task_completions').insert({
+                  task_id: relatedTask.id,
+                  user_id: user.id,
+                  date: today,
+                  minutes_completed: durationMinutes,
+                  target_minutes: relatedTask.target_duration_minutes || durationMinutes,
+                  is_completed: !!(relatedTask.target_duration_minutes && durationMinutes >= relatedTask.target_duration_minutes),
+                });
+              }
+              onDailyProgressUpdate?.(relatedTask.id, durationMinutes);
+            } else if (relatedTask.task_type === 'onetime') {
+              // Update one-time task progress
+              const relatedTargetMinutes = relatedTask.estimated_minutes ?? (relatedTask.estimated_pomodoros ? relatedTask.estimated_pomodoros * 25 : null);
+              const relatedIsCompleted = relatedTargetMinutes ? relatedUpdatedMinutes >= relatedTargetMinutes : false;
+
+              await supabase
+                .from('tasks')
+                .update({
+                  completed_pomodoros: relatedUpdatedPomodoros,
+                  completed_minutes: relatedUpdatedMinutes,
+                  is_completed: relatedIsCompleted,
+                  completed_at: relatedIsCompleted ? completedAt.toISOString() : null,
+                  is_active: relatedIsCompleted ? false : relatedTask.is_active,
+                })
+                .eq('id', relatedTask.id);
+            }
+          }
+        }
+      }
+
       if (isDaily) {
         const today = getLocalDateString();
-        const { data: existing, error: existingError } = await supabase
+        const utcDate = new Date().toISOString().slice(0, 10);
+
+        // Query for both local and UTC dates to handle transition period
+        const { data: allRecords, error: existingError } = await supabase
           .from('daily_task_completions')
           .select('*')
           .eq('task_id', task.id)
-          .eq('date', today)
-          .maybeSingle();
+          .in('date', [today, utcDate]);
 
         if (existingError && existingError.code !== 'PGRST116') {
           throw existingError;
         }
 
-        if (existing) {
-          const nextMinutes = (existing.minutes_completed || 0) + durationMinutes;
+        // Consolidate records if there are multiple (transition from UTC to local)
+        if (allRecords && allRecords.length > 0) {
+          // Calculate total minutes from all records
+          const totalExistingMinutes = allRecords.reduce((sum, rec) => sum + (rec.minutes_completed || 0), 0);
+          const nextMinutes = totalExistingMinutes + durationMinutes;
           const nextCompleted = !!(
             task.target_duration_minutes && nextMinutes >= task.target_duration_minutes
           );
 
+          // Use the record with local date if it exists, otherwise use the first one
+          const primaryRecord = allRecords.find(r => r.date === today) || allRecords[0];
+          const recordsToDelete = allRecords.filter(r => r.id !== primaryRecord.id);
+
+          // Update primary record with consolidated minutes
           await supabase
             .from('daily_task_completions')
             .update({
               minutes_completed: nextMinutes,
               is_completed: nextCompleted,
               updated_at: new Date().toISOString(),
+              date: today, // Ensure it uses local date
             })
-            .eq('id', existing.id);
+            .eq('id', primaryRecord.id);
+
+          // Delete duplicate records
+          if (recordsToDelete.length > 0) {
+            await supabase
+              .from('daily_task_completions')
+              .delete()
+              .in('id', recordsToDelete.map(r => r.id));
+          }
+
+          const existing = primaryRecord;
 
           if (!existing.is_completed && nextCompleted) {
             const { data: rewardResult, error: rewardError } = await supabase.rpc('add_rewards', {
@@ -368,6 +486,7 @@ export default function PomodoroModal({
 
         onRewards(rewards);
       }
+      onTimeSummaryUpdate?.(durationMinutes, completedAt);
       fetchProfile();
       setShowReport(false);
       onClose();

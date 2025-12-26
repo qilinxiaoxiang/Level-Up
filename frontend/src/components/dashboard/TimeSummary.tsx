@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useUserStore } from '../../store/useUserStore';
 import { Clock, Calendar } from 'lucide-react';
-import { getLocalDateString, getLocalWeekStart } from '../../utils/dateUtils';
+import { getStartOfDayUTC, getEndOfDayUTC } from '../../utils/dateUtils';
 
 export default function TimeSummary() {
   const { user } = useUserStore();
@@ -15,17 +15,14 @@ export default function TimeSummary() {
       if (!user) return;
       setLoading(true);
 
-      const today = getLocalDateString();
-      const weekStart = getLocalWeekStart();
-
       try {
-        // Fetch today's pomodoros
+        // Fetch today's pomodoros (using UTC timestamps for proper timezone handling)
         const { data: todayData } = await supabase
           .from('pomodoros')
           .select('duration_minutes')
           .eq('user_id', user.id)
-          .gte('completed_at', `${today}T00:00:00`)
-          .lt('completed_at', `${today}T23:59:59`);
+          .gte('completed_at', getStartOfDayUTC())
+          .lte('completed_at', getEndOfDayUTC());
 
         if (todayData) {
           const total = todayData.reduce((sum, p) => sum + (p.duration_minutes || 0), 0);
@@ -33,11 +30,16 @@ export default function TimeSummary() {
         }
 
         // Fetch this week's pomodoros
+        const weekStartDate = new Date();
+        const dayOfWeek = weekStartDate.getDay();
+        const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        weekStartDate.setDate(weekStartDate.getDate() + diff);
+
         const { data: weekData } = await supabase
           .from('pomodoros')
           .select('duration_minutes')
           .eq('user_id', user.id)
-          .gte('completed_at', `${weekStart}T00:00:00`);
+          .gte('completed_at', getStartOfDayUTC(weekStartDate));
 
         if (weekData) {
           const total = weekData.reduce((sum, p) => sum + (p.duration_minutes || 0), 0);

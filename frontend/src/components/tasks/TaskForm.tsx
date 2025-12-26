@@ -1,10 +1,19 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { TaskCategory, TaskPriority, TaskType } from '../../types';
 import type { TaskInput } from '../../hooks/useTasks';
+import { supabase } from '../../lib/supabase';
+import { useUserStore } from '../../store/useUserStore';
+import { getLocalDateString } from '../../utils/dateUtils';
 
 interface TaskFormProps {
-  onCreate: (input: TaskInput) => Promise<void>;
+  onCreate: (input: TaskInput, relatedDailyTaskIds: string[]) => Promise<void>;
   loading: boolean;
+}
+
+interface RelatedDailyTask {
+  id: string;
+  title: string;
+  category: string | null;
 }
 
 const CATEGORY_OPTIONS: { value: TaskCategory; label: string }[] = [
@@ -22,18 +31,23 @@ const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
 ];
 
 export default function TaskForm({ onCreate, loading }: TaskFormProps) {
+  const { user } = useUserStore();
+  const todayString = useMemo(() => getLocalDateString(), []);
   const [taskType, setTaskType] = useState<TaskType>('daily');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<TaskCategory | ''>('');
   const [priority, setPriority] = useState<TaskPriority>('medium');
   const [targetDuration, setTargetDuration] = useState('60');
-  const [deadline, setDeadline] = useState('');
+  const [deadline, setDeadline] = useState(todayString);
   const [estimatedMinutes, setEstimatedMinutes] = useState('120');
   const [goldReward, setGoldReward] = useState('10');
   const [xpReward, setXpReward] = useState('20');
   const [showRewards, setShowRewards] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [availableDailyTasks, setAvailableDailyTasks] = useState<RelatedDailyTask[]>([]);
+  const [selectedDailyTaskIds, setSelectedDailyTaskIds] = useState<string[]>([]);
+  const [relationshipsLoading, setRelationshipsLoading] = useState(false);
 
   const resetForm = () => {
     setTitle('');
@@ -41,18 +55,60 @@ export default function TaskForm({ onCreate, loading }: TaskFormProps) {
     setCategory('');
     setPriority('medium');
     setTargetDuration('60');
-    setDeadline('');
+    setDeadline(todayString);
     setEstimatedMinutes('120');
     setGoldReward('10');
     setXpReward('20');
     setShowRewards(false);
     setError(null);
+    setSelectedDailyTaskIds([]);
   };
+
+  useEffect(() => {
+    if (taskType !== 'onetime' || !user) {
+      setAvailableDailyTasks([]);
+      setSelectedDailyTaskIds([]);
+      return;
+    }
+
+    const fetchDailyTasks = async () => {
+      setRelationshipsLoading(true);
+      try {
+        const { data, error: fetchError } = await supabase
+          .from('tasks')
+          .select('id, title, category')
+          .eq('user_id', user.id)
+          .eq('task_type', 'daily')
+          .eq('is_archived', false)
+          .order('title');
+
+        if (fetchError) throw fetchError;
+        setAvailableDailyTasks((data as RelatedDailyTask[]) || []);
+      } catch (err) {
+        console.error('Failed to load daily tasks for linking:', err);
+        setAvailableDailyTasks([]);
+      } finally {
+        setRelationshipsLoading(false);
+      }
+    };
+
+    fetchDailyTasks();
+  }, [taskType, user]);
+
+  useEffect(() => {
+    if (taskType === 'onetime' && !deadline) {
+      setDeadline(todayString);
+    }
+  }, [taskType, deadline, todayString]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!title.trim()) {
       setError('Task title is required.');
+      return;
+    }
+    if (taskType === 'onetime' && !deadline) {
+      setError('Deadline is required for one-time tasks.');
       return;
     }
 
@@ -72,7 +128,8 @@ export default function TaskForm({ onCreate, loading }: TaskFormProps) {
     };
 
     try {
-      await onCreate(payload);
+      const relatedDailyTaskIds = taskType === 'onetime' ? selectedDailyTaskIds : [];
+      await onCreate(payload, relatedDailyTaskIds);
       resetForm();
     } catch (err) {
       setError((err as Error).message || 'Failed to create task.');
@@ -185,17 +242,18 @@ export default function TaskForm({ onCreate, loading }: TaskFormProps) {
           </div>
         ) : (
           <>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Deadline
-              </label>
-              <input
-                type="date"
-                value={deadline}
-                onChange={(event) => setDeadline(event.target.value)}
-                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Deadline
+            </label>
+            <input
+              type="date"
+              required
+              value={deadline}
+              onChange={(event) => setDeadline(event.target.value)}
+              className="date-input w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
+            />
+          </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Estimated Minutes
@@ -211,6 +269,56 @@ export default function TaskForm({ onCreate, loading }: TaskFormProps) {
           </>
         )}
       </div>
+
+      {taskType === 'onetime' && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-medium text-gray-300">
+              Link daily tasks (optional)
+            </label>
+            {relationshipsLoading && (
+              <span className="text-xs text-gray-500">Loading...</span>
+            )}
+          </div>
+          <p className="text-xs text-gray-500">
+            Linked daily tasks get the same minutes. Stats stay single-source from pomodoros.
+          </p>
+          <div className="max-h-40 overflow-y-auto">
+            {availableDailyTasks.length === 0 ? (
+              <p className="text-xs text-gray-500 text-center py-2">
+                No daily tasks available.
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {availableDailyTasks.map((dailyTask) => {
+                  const isSelected = selectedDailyTaskIds.includes(dailyTask.id);
+                  return (
+                    <button
+                      key={dailyTask.id}
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() => {
+                        setSelectedDailyTaskIds((prev) =>
+                          isSelected
+                            ? prev.filter((id) => id !== dailyTask.id)
+                            : [...prev, dailyTask.id]
+                        );
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors border ${
+                        isSelected
+                          ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/40'
+                          : 'bg-slate-800 text-gray-300 border-slate-700 hover:text-white hover:border-slate-500'
+                      }`}
+                    >
+                      {dailyTask.title}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div>
         <button

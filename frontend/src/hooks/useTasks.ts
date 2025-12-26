@@ -29,7 +29,7 @@ interface UseTasksReturn {
   loading: boolean;
   error: string | null;
   fetchTasks: () => Promise<void>;
-  createTask: (input: TaskInput) => Promise<void>;
+  createTask: (input: TaskInput) => Promise<Task>;
   updateTask: (taskId: string, updates: Partial<TaskInput>) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
   toggleTaskActive: (taskId: string, isActive: boolean) => Promise<void>;
@@ -100,6 +100,7 @@ export function useTasks(): UseTasksReturn {
       if (error) throw error;
 
       setTasks((prev) => [data, ...prev]);
+      return data as Task;
     } catch (err) {
       console.error('Error creating task:', err);
       setError((err as Error).message);
