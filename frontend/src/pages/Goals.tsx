@@ -139,23 +139,27 @@ export default function Goals() {
 
           // Update primary record
           consolidationPromises.push(
-            supabase
-              .from('daily_task_completions')
-              .update({
-                minutes_completed: totalMinutes,
-                date: today,
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', primaryRecord.id)
+            Promise.resolve(
+              supabase
+                .from('daily_task_completions')
+                .update({
+                  minutes_completed: totalMinutes,
+                  date: today,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', primaryRecord.id)
+            )
           );
 
           // Delete duplicates
           if (recordsToDelete.length > 0) {
             consolidationPromises.push(
-              supabase
-                .from('daily_task_completions')
-                .delete()
-                .in('id', recordsToDelete.map(r => r.id))
+              Promise.resolve(
+                supabase
+                  .from('daily_task_completions')
+                  .delete()
+                  .in('id', recordsToDelete.map(r => r.id))
+              )
             );
           }
 
