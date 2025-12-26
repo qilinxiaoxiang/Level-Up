@@ -98,6 +98,10 @@ export default function PomodoroModal({
       setSecondsLeft((prev) => {
         if (prev <= 1) {
           window.clearInterval(interval);
+          // Timer finished naturally - auto-complete
+          setIsRunning(false);
+          setIsComplete(true);
+          setShowReport(true);
           return 0;
         }
         return prev - 1;
