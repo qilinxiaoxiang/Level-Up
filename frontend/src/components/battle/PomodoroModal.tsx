@@ -200,18 +200,18 @@ export default function PomodoroModal({
       if (insertError) throw insertError;
 
       // Fetch related tasks to update them as well
+      // Only update related tasks if current task is a one-time task
+      // This ensures the link is unidirectional: one-time -> daily, not daily -> one-time
       const { data: relatedTasks } = await supabase
         .from('task_relationships')
         .select('onetime_task_id, daily_task_id')
         .or(`onetime_task_id.eq.${task.id},daily_task_id.eq.${task.id}`);
 
       const relatedTaskIds: string[] = [];
-      if (relatedTasks && relatedTasks.length > 0) {
+      if (relatedTasks && relatedTasks.length > 0 && task.task_type === 'onetime') {
         relatedTasks.forEach((rel) => {
           if (rel.onetime_task_id === task.id) {
             relatedTaskIds.push(rel.daily_task_id);
-          } else if (rel.daily_task_id === task.id) {
-            relatedTaskIds.push(rel.onetime_task_id);
           }
         });
       }
