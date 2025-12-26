@@ -115,7 +115,6 @@ out/
 
 # Gatsby files (if used later)
 .cache/
-public/
 
 # Serverless directories
 .serverless/

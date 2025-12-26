@@ -337,7 +337,12 @@ export default function Goals() {
 
         {/* Compressed Goal Cards */}
         <section className="space-y-3">
-          {!hasAllGoals ? (
+          {goalsLoading && goals.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+              <p className="mt-4 text-gray-400">Loading goals...</p>
+            </div>
+          ) : !hasAllGoals ? (
             <GoalSetupForm />
           ) : (
             <div className="space-y-3">
