@@ -9,6 +9,23 @@ export function getLocalDateString(date: Date = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
+function getLocalDayIndex(date: Date): number {
+  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function getLocalDayIndexFromString(dateString: string): number {
+  const [year, month, day] = dateString.split('-').map(Number);
+  if (!year || !month || !day) return Number.NaN;
+  return Date.UTC(year, month - 1, day);
+}
+
+export function getLocalDayDiff(fromDateString: string, toDateString: string): number {
+  const fromIndex = getLocalDayIndexFromString(fromDateString);
+  const toIndex = getLocalDayIndexFromString(toDateString);
+  if (Number.isNaN(fromIndex) || Number.isNaN(toIndex)) return 0;
+  return Math.floor((toIndex - fromIndex) / (24 * 60 * 60 * 1000));
+}
+
 /**
  * Gets the start of the current week (Monday) in local timezone as YYYY-MM-DD string
  */

@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { useUserStore } from '../../store/useUserStore';
 import type { Task } from '../../types';
 import LevelUpModal from '../common/LevelUpModal';
-import { getLocalDateString } from '../../utils/dateUtils';
+import { getLocalDateString, getLocalDayDiff } from '../../utils/dateUtils';
 
 interface PomodoroModalProps {
   task: Task;
@@ -440,7 +440,12 @@ export default function PomodoroModal({
                 .single();
 
               if (profile?.last_streak_date !== today) {
-                const nextStreak = (profile?.current_streak || 0) + 1;
+                const dayDiff = profile?.last_streak_date
+                  ? getLocalDayDiff(profile.last_streak_date, today)
+                  : null;
+                const currentStreak = profile?.current_streak || 0;
+                const nextStreak =
+                  dayDiff === 1 ? currentStreak + 1 : 1;
                 await supabase
                   .from('user_profiles')
                   .update({

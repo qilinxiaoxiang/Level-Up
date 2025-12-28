@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { UserProfile } from '../types';
 import type { User } from '@supabase/supabase-js';
+import { getLocalDateString, getLocalDayDiff } from '../utils/dateUtils';
 
 interface UserState {
   user: User | null;
@@ -49,6 +50,24 @@ export const useUserStore = create<UserState>((set, get) => ({
         .single();
 
       if (error) throw error;
+
+      if (data?.last_streak_date && (data.current_streak || 0) > 0) {
+        const today = getLocalDateString();
+        const dayDiff = getLocalDayDiff(data.last_streak_date, today);
+
+        if (dayDiff >= 2) {
+          const { data: updated, error: updateError } = await supabase
+            .from('user_profiles')
+            .update({ current_streak: 0 })
+            .eq('id', user.id)
+            .select()
+            .single();
+
+          if (updateError) throw updateError;
+          set({ profile: updated, loading: false });
+          return;
+        }
+      }
 
       set({ profile: data, loading: false });
     } catch (error) {

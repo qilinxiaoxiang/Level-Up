@@ -56,7 +56,7 @@ ALTER TABLE user_profiles
 -- ============================================================
 CREATE TABLE goals (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID,
+  user_id UUID NOT NULL,
 
   -- Goal Type
   goal_type TEXT NOT NULL CHECK (goal_type IN ('3year', '1year', '1month')),
@@ -116,7 +116,7 @@ CREATE TABLE items (
 -- ============================================================
 CREATE TABLE tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID,
+  user_id UUID NOT NULL,
 
   -- Basic Info
   title TEXT NOT NULL,
@@ -184,7 +184,7 @@ CREATE INDEX idx_task_relationships_user ON task_relationships(user_id);
 -- ============================================================
 CREATE TABLE active_pomodoros (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID,
+  user_id UUID NOT NULL,
   task_id UUID,
   duration_minutes INTEGER NOT NULL,
   started_at TIMESTAMPTZ NOT NULL,
@@ -204,7 +204,7 @@ CREATE UNIQUE INDEX idx_active_pomodoros_user_active
 CREATE TABLE daily_task_completions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   task_id UUID,
-  user_id UUID,
+  user_id UUID NOT NULL,
 
   date DATE NOT NULL,
   minutes_completed INTEGER DEFAULT 0,
@@ -228,7 +228,7 @@ CREATE INDEX idx_daily_completions_date ON daily_task_completions(user_id, date)
 -- ============================================================
 CREATE TABLE pomodoros (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID,
+  user_id UUID NOT NULL,
   task_id UUID,
 
   -- Pomodoro Details
@@ -260,7 +260,7 @@ CREATE INDEX idx_pomodoros_task ON pomodoros(task_id);
 -- ============================================================
 CREATE TABLE user_inventory (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID,
+  user_id UUID NOT NULL,
   item_id UUID,
 
   quantity INTEGER DEFAULT 1, -- for stackable items (consumables)
@@ -312,7 +312,7 @@ CREATE TABLE achievements (
 -- ============================================================
 CREATE TABLE user_achievements (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID,
+  user_id UUID NOT NULL,
   achievement_id UUID,
 
   unlocked_at TIMESTAMPTZ DEFAULT NOW(),
@@ -325,7 +325,7 @@ CREATE TABLE user_achievements (
 -- ============================================================
 CREATE TABLE streak_history (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID,
+  user_id UUID NOT NULL,
 
   streak_count INTEGER NOT NULL,
   started_at DATE NOT NULL,
@@ -340,7 +340,7 @@ CREATE TABLE streak_history (
 -- ============================================================
 CREATE TABLE user_shop_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID,
+  user_id UUID NOT NULL,
   name TEXT NOT NULL,
   description TEXT,
   gold_cost INTEGER NOT NULL,
