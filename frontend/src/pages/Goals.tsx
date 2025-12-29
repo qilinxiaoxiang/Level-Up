@@ -865,7 +865,7 @@ export default function Goals() {
                 step={60}
                 value={dayCutTime}
                 onChange={(event) => setDayCutTime(event.target.value)}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm"
+                className="block w-full min-w-0 appearance-none px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm"
               />
               <p className="text-xs text-gray-500 leading-tight">
                 Daily reset time in the selected timezone.
