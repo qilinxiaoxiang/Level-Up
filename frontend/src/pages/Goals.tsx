@@ -867,8 +867,8 @@ export default function Goals() {
                 onChange={(event) => setDayCutTime(event.target.value)}
                 className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm"
               />
-              <p className="text-xs text-gray-500">
-                The day starts at this time for streaks and stats in the selected timezone (DST-aware).
+              <p className="text-xs text-gray-500 leading-tight">
+                Daily reset time in the selected timezone.
               </p>
               {dayCutError && <p className="text-xs text-red-400">{dayCutError}</p>}
             </div>
