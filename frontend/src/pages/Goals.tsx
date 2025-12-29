@@ -24,16 +24,17 @@ const GOAL_CONFIG = {
 };
 
 const TIMEZONE_OPTIONS = [
-  { label: 'UTC-06:00 (CST - US Central)', offsetMinutes: -6 * 60 },
-  { label: 'UTC-08:00 (Pacific)', offsetMinutes: -8 * 60 },
-  { label: 'UTC-05:00 (Eastern)', offsetMinutes: -5 * 60 },
-  { label: 'UTC+00:00 (London)', offsetMinutes: 0 },
-  { label: 'UTC+01:00 (Berlin)', offsetMinutes: 60 },
-  { label: 'UTC+03:00 (Moscow)', offsetMinutes: 3 * 60 },
-  { label: 'UTC+05:30 (India)', offsetMinutes: 5 * 60 + 30 },
-  { label: 'UTC+08:00 (Beijing, Singapore)', offsetMinutes: 8 * 60 },
-  { label: 'UTC+09:00 (Tokyo)', offsetMinutes: 9 * 60 },
-  { label: 'UTC+10:00 (Sydney)', offsetMinutes: 10 * 60 },
+  { label: 'Pacific Time (PST/PDT - America/Los_Angeles)', value: 'America/Los_Angeles' },
+  { label: 'Central Time (CST/CDT - America/Chicago)', value: 'America/Chicago' },
+  { label: 'Eastern Time (EST/EDT - America/New_York)', value: 'America/New_York' },
+  { label: 'UTC (Etc/UTC)', value: 'Etc/UTC' },
+  { label: 'London (GMT/BST - Europe/London)', value: 'Europe/London' },
+  { label: 'Berlin (CET/CEST - Europe/Berlin)', value: 'Europe/Berlin' },
+  { label: 'Moscow (Europe/Moscow)', value: 'Europe/Moscow' },
+  { label: 'India (Asia/Kolkata)', value: 'Asia/Kolkata' },
+  { label: 'China (Asia/Shanghai)', value: 'Asia/Shanghai' },
+  { label: 'Japan (Asia/Tokyo)', value: 'Asia/Tokyo' },
+  { label: 'Sydney (AEST/AEDT - Australia/Sydney)', value: 'Australia/Sydney' },
 ];
 
 export default function Goals() {
@@ -65,7 +66,7 @@ export default function Goals() {
   const [showDayCutEditor, setShowDayCutEditor] = useState(false);
   const [dayCutTime, setDayCutTime] = useState('00:00');
   const [dayCutError, setDayCutError] = useState<string | null>(null);
-  const [timezoneOffset, setTimezoneOffset] = useState(8 * 60);
+  const [timezoneName, setTimezoneName] = useState('Asia/Shanghai');
   const [showWeeklyHistogram, setShowWeeklyHistogram] = useState(false);
 
   useEffect(() => {
@@ -77,12 +78,12 @@ export default function Goals() {
   }, [profile?.daily_reset_time]);
 
   useEffect(() => {
-    if (profile?.timezone_offset_minutes === null || profile?.timezone_offset_minutes === undefined) {
-      setTimezoneOffset(8 * 60);
+    if (!profile?.timezone_name) {
+      setTimezoneName('Asia/Shanghai');
       return;
     }
-    setTimezoneOffset(profile.timezone_offset_minutes);
-  }, [profile?.timezone_offset_minutes]);
+    setTimezoneName(profile.timezone_name);
+  }, [profile?.timezone_name]);
 
   const sortedGoals = useMemo(() => {
     return [...goals].sort((a, b) => {
@@ -278,7 +279,7 @@ export default function Goals() {
     };
 
     fetchDailyProgress();
-  }, [user, profile?.daily_reset_time, profile?.timezone_offset_minutes, profile]);
+  }, [user, profile?.daily_reset_time, profile?.timezone_name, profile]);
 
   useEffect(() => {
     const fetchTimeSummary = async () => {
@@ -317,7 +318,7 @@ export default function Goals() {
     };
 
     fetchTimeSummary();
-  }, [user, profile?.daily_reset_time, profile?.timezone_offset_minutes, profile]);
+  }, [user, profile?.daily_reset_time, profile?.timezone_name, profile]);
 
   useEffect(() => {
     if (!activeSession) return;
@@ -375,13 +376,8 @@ export default function Goals() {
   };
 
   const formatTimezoneLabel = () => {
-    const matched = TIMEZONE_OPTIONS.find((option) => option.offsetMinutes === timezoneOffset);
-    if (matched) return matched.label;
-    const sign = timezoneOffset >= 0 ? '+' : '-';
-    const absMinutes = Math.abs(timezoneOffset);
-    const hours = String(Math.floor(absMinutes / 60)).padStart(2, '0');
-    const mins = String(absMinutes % 60).padStart(2, '0');
-    return `UTC${sign}${hours}:${mins}`;
+    const matched = TIMEZONE_OPTIONS.find((option) => option.value === timezoneName);
+    return matched ? matched.label : timezoneName;
   };
 
   const saveDayCutTime = async () => {
@@ -394,7 +390,7 @@ export default function Goals() {
     try {
       await updateProfile({
         daily_reset_time: `${dayCutTime}:00`,
-        timezone_offset_minutes: timezoneOffset,
+        timezone_name: timezoneName,
       });
       setShowDayCutEditor(false);
     } catch (error) {
@@ -408,14 +404,14 @@ export default function Goals() {
         {/* Header with Stats and XP */}
         <div className="space-y-4">
           {/* Title */}
-          <div className="relative text-center">
+          <div className="relative text-center flex flex-col items-center gap-3 sm:block">
             <h1 className="text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-200">
               Level Up
             </h1>
             <button
               type="button"
               onClick={() => setShowDayCutEditor(true)}
-              className="absolute right-0 top-0 inline-flex items-center gap-2 text-xs text-gray-300 bg-slate-800/70 border border-slate-700/60 rounded-full px-3 py-1 hover:border-slate-500 transition"
+              className="inline-flex items-center gap-2 text-xs text-gray-300 bg-slate-800/70 border border-slate-700/60 rounded-full px-3 py-1 hover:border-slate-500 transition sm:absolute sm:right-0 sm:top-0"
             >
               <Clock size={14} />
               Day cut · {formatTimezoneLabel()}
@@ -852,12 +848,12 @@ export default function Goals() {
             <div className="space-y-2">
               <label className="block text-xs text-gray-400">Timezone</label>
               <select
-                value={timezoneOffset}
-                onChange={(event) => setTimezoneOffset(Number(event.target.value))}
+                value={timezoneName}
+                onChange={(event) => setTimezoneName(event.target.value)}
                 className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm"
               >
                 {TIMEZONE_OPTIONS.map((option) => (
-                  <option key={option.offsetMinutes} value={option.offsetMinutes}>
+                  <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
                 ))}
@@ -872,7 +868,7 @@ export default function Goals() {
                 className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm"
               />
               <p className="text-xs text-gray-500">
-                The day starts at this time for streaks and stats in the selected timezone.
+                The day starts at this time for streaks and stats in the selected timezone (DST-aware).
               </p>
               {dayCutError && <p className="text-xs text-red-400">{dayCutError}</p>}
             </div>

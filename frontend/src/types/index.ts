@@ -20,7 +20,7 @@ export interface UserProfile {
   focus: number | null;
   pomodoro_duration: number | null;
   rest_credits: number | null;
-  timezone_offset_minutes: number | null;
+  timezone_name: string | null;
   current_streak: number | null;
   longest_streak: number | null;
   total_pomodoros: number | null;

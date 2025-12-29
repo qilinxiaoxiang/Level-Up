@@ -7,7 +7,7 @@ import {
   getLocalDayDiff,
   parseDailyResetTimeToMinutes,
   setDayCutOffsetMinutes,
-  setTimezoneOffsetMinutes,
+  setTimezoneName,
 } from '../utils/dateUtils';
 
 interface UserState {
@@ -57,10 +57,10 @@ export const useUserStore = create<UserState>((set, get) => ({
 
       if (error) throw error;
 
-      if (data?.timezone_offset_minutes !== null && data?.timezone_offset_minutes !== undefined) {
-        setTimezoneOffsetMinutes(data.timezone_offset_minutes);
+      if (data?.timezone_name) {
+        setTimezoneName(data.timezone_name);
       } else {
-        setTimezoneOffsetMinutes(8 * 60);
+        setTimezoneName('Asia/Shanghai');
       }
 
       if (data?.daily_reset_time) {
@@ -110,8 +110,8 @@ export const useUserStore = create<UserState>((set, get) => ({
 
       if (error) throw error;
 
-      if (data?.timezone_offset_minutes !== null && data?.timezone_offset_minutes !== undefined) {
-        setTimezoneOffsetMinutes(data.timezone_offset_minutes);
+      if (data?.timezone_name) {
+        setTimezoneName(data.timezone_name);
       }
 
       if (data?.daily_reset_time) {

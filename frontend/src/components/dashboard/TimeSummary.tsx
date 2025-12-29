@@ -50,7 +50,7 @@ export default function TimeSummary() {
     };
 
     fetchTimeSummary();
-  }, [user, profile?.daily_reset_time, profile?.timezone_offset_minutes, profile]);
+  }, [user, profile?.daily_reset_time, profile?.timezone_name, profile]);
 
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);

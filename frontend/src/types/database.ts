@@ -503,7 +503,7 @@ export type Database = {
           strength: number | null
           total_pomodoros: number | null
           total_xp: number | null
-          timezone_offset_minutes: number | null
+          timezone_name: string | null
           updated_at: string | null
           username: string | null
         }
@@ -527,7 +527,7 @@ export type Database = {
           strength?: number | null
           total_pomodoros?: number | null
           total_xp?: number | null
-          timezone_offset_minutes?: number | null
+          timezone_name?: string | null
           updated_at?: string | null
           username?: string | null
         }
@@ -551,7 +551,7 @@ export type Database = {
           strength?: number | null
           total_pomodoros?: number | null
           total_xp?: number | null
-          timezone_offset_minutes?: number | null
+          timezone_name?: string | null
           updated_at?: string | null
           username?: string | null
         }

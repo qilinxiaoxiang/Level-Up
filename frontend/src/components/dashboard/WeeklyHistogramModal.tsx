@@ -43,7 +43,7 @@ export default function WeeklyHistogramModal({ onClose }: WeeklyHistogramModalPr
 
   const thisWeekStart = useMemo(
     () => getLocalWeekStart(),
-    [profile?.daily_reset_time, profile?.timezone_offset_minutes]
+    [profile?.daily_reset_time, profile?.timezone_name]
   );
   const lastWeekStart = useMemo(
     () => addDaysToDateString(thisWeekStart, -7),
