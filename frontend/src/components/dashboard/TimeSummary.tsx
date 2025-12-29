@@ -2,17 +2,17 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useUserStore } from '../../store/useUserStore';
 import { Clock, Calendar } from 'lucide-react';
-import { getStartOfDayUTC, getEndOfDayUTC } from '../../utils/dateUtils';
+import { getStartOfDayUTC, getEndOfDayUTC, getLocalWeekStart } from '../../utils/dateUtils';
 
 export default function TimeSummary() {
-  const { user } = useUserStore();
+  const { user, profile } = useUserStore();
   const [todayMinutes, setTodayMinutes] = useState(0);
   const [weekMinutes, setWeekMinutes] = useState(0);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchTimeSummary = async () => {
-      if (!user) return;
+      if (!user || !profile) return;
       setLoading(true);
 
       try {
@@ -30,10 +30,7 @@ export default function TimeSummary() {
         }
 
         // Fetch this week's pomodoros
-        const weekStartDate = new Date();
-        const dayOfWeek = weekStartDate.getDay();
-        const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-        weekStartDate.setDate(weekStartDate.getDate() + diff);
+        const weekStartDate = new Date(getLocalWeekStart());
 
         const { data: weekData } = await supabase
           .from('pomodoros')
@@ -53,7 +50,7 @@ export default function TimeSummary() {
     };
 
     fetchTimeSummary();
-  }, [user]);
+  }, [user, profile?.daily_reset_time, profile?.timezone_offset_minutes, profile]);
 
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);

@@ -2,7 +2,13 @@ import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { UserProfile } from '../types';
 import type { User } from '@supabase/supabase-js';
-import { getLocalDateString, getLocalDayDiff } from '../utils/dateUtils';
+import {
+  getLocalDateString,
+  getLocalDayDiff,
+  parseDailyResetTimeToMinutes,
+  setDayCutOffsetMinutes,
+  setTimezoneOffsetMinutes,
+} from '../utils/dateUtils';
 
 interface UserState {
   user: User | null;
@@ -51,6 +57,18 @@ export const useUserStore = create<UserState>((set, get) => ({
 
       if (error) throw error;
 
+      if (data?.timezone_offset_minutes !== null && data?.timezone_offset_minutes !== undefined) {
+        setTimezoneOffsetMinutes(data.timezone_offset_minutes);
+      } else {
+        setTimezoneOffsetMinutes(8 * 60);
+      }
+
+      if (data?.daily_reset_time) {
+        setDayCutOffsetMinutes(parseDailyResetTimeToMinutes(data.daily_reset_time));
+      } else {
+        setDayCutOffsetMinutes(0);
+      }
+
       if (data?.last_streak_date && (data.current_streak || 0) > 0) {
         const today = getLocalDateString();
         const dayDiff = getLocalDayDiff(data.last_streak_date, today);
@@ -92,6 +110,13 @@ export const useUserStore = create<UserState>((set, get) => ({
 
       if (error) throw error;
 
+      if (data?.timezone_offset_minutes !== null && data?.timezone_offset_minutes !== undefined) {
+        setTimezoneOffsetMinutes(data.timezone_offset_minutes);
+      }
+
+      if (data?.daily_reset_time) {
+        setDayCutOffsetMinutes(parseDailyResetTimeToMinutes(data.daily_reset_time));
+      }
       set({ profile: data, loading: false });
     } catch (error) {
       console.error('Error updating profile:', error);

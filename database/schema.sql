@@ -38,6 +38,7 @@ CREATE TABLE user_profiles (
   -- Preferences
   pomodoro_duration INTEGER DEFAULT 25, -- minutes
   daily_reset_time TIME DEFAULT '00:00:00',
+  timezone_offset_minutes INTEGER DEFAULT 480,
 
   -- Tracking
   rest_credits INTEGER DEFAULT 0,

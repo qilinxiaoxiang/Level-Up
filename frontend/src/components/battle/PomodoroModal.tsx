@@ -26,7 +26,7 @@ interface PomodoroModalProps {
   onTimeSummaryUpdate?: (minutes: number, completedAt: Date) => void;
 }
 
-const DURATION_OPTIONS = [15, 25, 45, 60];
+const DURATION_OPTIONS = [25, 45, 60];
 
 export interface ActivePomodoro {
   id: string;
@@ -55,8 +55,8 @@ export default function PomodoroModal({
   onTimeSummaryUpdate,
 }: PomodoroModalProps) {
   const { user, fetchProfile } = useUserStore();
-  const [duration, setDuration] = useState(25);
-  const [customInput, setCustomInput] = useState('25');
+  const [duration, setDuration] = useState(60);
+  const [customInput, setCustomInput] = useState('60');
   const [secondsLeft, setSecondsLeft] = useState(duration * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [startTime, setStartTime] = useState<Date | null>(null);

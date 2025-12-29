@@ -493,7 +493,7 @@ export default function TaskCard({
         <button
           type="button"
           onClick={() => onStartPomodoro(task)}
-          disabled={isRunning || task.is_completed || isDailyDone}
+          disabled={isRunning}
           className="px-3 py-1.5 bg-emerald-500/90 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
           Start Pomodoro

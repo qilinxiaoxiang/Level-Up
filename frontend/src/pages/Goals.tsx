@@ -9,11 +9,13 @@ import PomodoroModal, { type ActivePomodoro } from '../components/battle/Pomodor
 import BurnDownModal from '../components/tasks/BurnDownModal';
 import ShopPanel from '../components/shop/ShopPanel';
 import CheckInCalendar from '../components/calendar/CheckInCalendar';
+import WeeklyHistogramModal from '../components/dashboard/WeeklyHistogramModal';
 import { formatDistanceToNow } from 'date-fns';
 import type { Task } from '../types';
 import { useUserStore } from '../store/useUserStore';
 import { useAuth } from '../hooks/useAuth';
 import { getLocalDateString, getLocalWeekStart, getStartOfDayUTC, getEndOfDayUTC } from '../utils/dateUtils';
+import { Clock } from 'lucide-react';
 
 const GOAL_CONFIG = {
   '3year': { emoji: '🎯', label: '3-Year Goal', color: 'from-blue-600 to-cyan-600' },
@@ -21,8 +23,21 @@ const GOAL_CONFIG = {
   '1month': { emoji: '🚀', label: '1-Month Goal', color: 'from-green-600 to-emerald-600' },
 };
 
+const TIMEZONE_OPTIONS = [
+  { label: 'UTC-06:00 (CST - US Central)', offsetMinutes: -6 * 60 },
+  { label: 'UTC-08:00 (Pacific)', offsetMinutes: -8 * 60 },
+  { label: 'UTC-05:00 (Eastern)', offsetMinutes: -5 * 60 },
+  { label: 'UTC+00:00 (London)', offsetMinutes: 0 },
+  { label: 'UTC+01:00 (Berlin)', offsetMinutes: 60 },
+  { label: 'UTC+03:00 (Moscow)', offsetMinutes: 3 * 60 },
+  { label: 'UTC+05:30 (India)', offsetMinutes: 5 * 60 + 30 },
+  { label: 'UTC+08:00 (Beijing, Singapore)', offsetMinutes: 8 * 60 },
+  { label: 'UTC+09:00 (Tokyo)', offsetMinutes: 9 * 60 },
+  { label: 'UTC+10:00 (Sydney)', offsetMinutes: 10 * 60 },
+];
+
 export default function Goals() {
-  const { user } = useUserStore();
+  const { user, updateProfile } = useUserStore();
   const { profile } = useAuth();
   const { goals, loading: goalsLoading, hasAllGoals, updateGoal } = useGoals();
   const {
@@ -47,6 +62,27 @@ export default function Goals() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [todayMinutes, setTodayMinutes] = useState(0);
   const [weekMinutes, setWeekMinutes] = useState(0);
+  const [showDayCutEditor, setShowDayCutEditor] = useState(false);
+  const [dayCutTime, setDayCutTime] = useState('00:00');
+  const [dayCutError, setDayCutError] = useState<string | null>(null);
+  const [timezoneOffset, setTimezoneOffset] = useState(8 * 60);
+  const [showWeeklyHistogram, setShowWeeklyHistogram] = useState(false);
+
+  useEffect(() => {
+    if (!profile?.daily_reset_time) {
+      setDayCutTime('00:00');
+      return;
+    }
+    setDayCutTime(profile.daily_reset_time.slice(0, 5));
+  }, [profile?.daily_reset_time]);
+
+  useEffect(() => {
+    if (profile?.timezone_offset_minutes === null || profile?.timezone_offset_minutes === undefined) {
+      setTimezoneOffset(8 * 60);
+      return;
+    }
+    setTimezoneOffset(profile.timezone_offset_minutes);
+  }, [profile?.timezone_offset_minutes]);
 
   const sortedGoals = useMemo(() => {
     return [...goals].sort((a, b) => {
@@ -99,12 +135,14 @@ export default function Goals() {
 
   useEffect(() => {
     const fetchDailyProgress = async () => {
-      if (!user) return;
+      if (!user || !profile) return;
       const today = getLocalDateString();
       const utcDate = new Date().toISOString().slice(0, 10);
+      const dayStart = getStartOfDayUTC();
+      const dayEnd = getEndOfDayUTC();
 
       // Query for both local and UTC dates to handle transition period
-      const { data, error } = await supabase
+      const { data: dateData, error } = await supabase
         .from('daily_task_completions')
         .select('*')
         .eq('user_id', user.id)
@@ -115,9 +153,71 @@ export default function Goals() {
         return;
       }
 
+      const { data: rangeData, error: rangeError } = await supabase
+        .from('daily_task_completions')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('created_at', dayStart)
+        .lte('created_at', dayEnd);
+
+      if (rangeError) {
+        console.error('❌ Error fetching daily progress range:', rangeError);
+        return;
+      }
+
+      const combined = new Map<string, any>();
+      (dateData || []).forEach((row) => combined.set(row.id, row));
+      (rangeData || []).forEach((row) => combined.set(row.id, row));
+      const dateMatches = Array.from(combined.values());
+      const removedIds = new Set<string>();
+      const todayStart = new Date(dayStart).getTime();
+      const todayEnd = new Date(dayEnd).getTime();
+      const todayMap = new Map<string, typeof dateMatches[number]>();
+      dateMatches
+        .filter((row) => row.date === today)
+        .forEach((row) => todayMap.set(row.task_id, row));
+
+      const candidates = dateMatches.filter((row) => {
+        if (row.date === today) return false;
+        if (!row.target_minutes || row.target_minutes <= 0) return false;
+        const createdAt = new Date(row.created_at).getTime();
+        return createdAt >= todayStart && createdAt <= todayEnd;
+      });
+
+      for (const candidate of candidates) {
+        const todayRecord = todayMap.get(candidate.task_id);
+        if (todayRecord) {
+          const nextMinutes =
+            (todayRecord.minutes_completed || 0) + (candidate.minutes_completed || 0);
+          await supabase
+            .from('daily_task_completions')
+            .update({
+              minutes_completed: nextMinutes,
+              is_completed: !!(todayRecord.target_minutes && nextMinutes >= todayRecord.target_minutes),
+              date: today,
+            })
+            .eq('id', todayRecord.id);
+
+          await supabase
+            .from('daily_task_completions')
+            .delete()
+            .eq('id', candidate.id);
+
+          todayRecord.minutes_completed = nextMinutes;
+          removedIds.add(candidate.id);
+        } else {
+          await supabase
+            .from('daily_task_completions')
+            .update({ date: today })
+            .eq('id', candidate.id);
+          candidate.date = today;
+          todayMap.set(candidate.task_id, candidate);
+        }
+      }
+
       // Group records by task_id to find duplicates
       const taskGroups: Record<string, any[]> = {};
-      data?.forEach((row) => {
+      dateMatches.filter((row) => !removedIds.has(row.id)).forEach((row) => {
         if (row.task_id) {
           if (!taskGroups[row.task_id]) {
             taskGroups[row.task_id] = [];
@@ -178,11 +278,11 @@ export default function Goals() {
     };
 
     fetchDailyProgress();
-  }, [user]);
+  }, [user, profile?.daily_reset_time, profile?.timezone_offset_minutes, profile]);
 
   useEffect(() => {
     const fetchTimeSummary = async () => {
-      if (!user) return;
+      if (!user || !profile) return;
 
       try {
         // Fetch today's pomodoros (using UTC timestamps for proper timezone handling)
@@ -198,11 +298,8 @@ export default function Goals() {
           setTodayMinutes(total);
         }
 
-        // Fetch this week's pomodoros
-        const weekStartDate = new Date();
-        const dayOfWeek = weekStartDate.getDay();
-        const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-        weekStartDate.setDate(weekStartDate.getDate() + diff);
+        // Fetch this week's pomodoros (week start in GMT+8)
+        const weekStartDate = new Date(getLocalWeekStart());
 
         const { data: weekData } = await supabase
           .from('pomodoros')
@@ -220,7 +317,7 @@ export default function Goals() {
     };
 
     fetchTimeSummary();
-  }, [user]);
+  }, [user, profile?.daily_reset_time, profile?.timezone_offset_minutes, profile]);
 
   useEffect(() => {
     if (!activeSession) return;
@@ -277,16 +374,52 @@ export default function Goals() {
     return `${hours}h ${mins}m`;
   };
 
+  const formatTimezoneLabel = () => {
+    const matched = TIMEZONE_OPTIONS.find((option) => option.offsetMinutes === timezoneOffset);
+    if (matched) return matched.label;
+    const sign = timezoneOffset >= 0 ? '+' : '-';
+    const absMinutes = Math.abs(timezoneOffset);
+    const hours = String(Math.floor(absMinutes / 60)).padStart(2, '0');
+    const mins = String(absMinutes % 60).padStart(2, '0');
+    return `UTC${sign}${hours}:${mins}`;
+  };
+
+  const saveDayCutTime = async () => {
+    if (!/^\d{2}:\d{2}$/.test(dayCutTime)) {
+      setDayCutError('Use HH:MM format.');
+      return;
+    }
+    setDayCutError(null);
+
+    try {
+      await updateProfile({
+        daily_reset_time: `${dayCutTime}:00`,
+        timezone_offset_minutes: timezoneOffset,
+      });
+      setShowDayCutEditor(false);
+    } catch (error) {
+      setDayCutError((error as Error).message || 'Failed to update day cut time.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
         {/* Header with Stats and XP */}
         <div className="space-y-4">
           {/* Title */}
-          <div className="text-center">
+          <div className="relative text-center">
             <h1 className="text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-200">
               Level Up
             </h1>
+            <button
+              type="button"
+              onClick={() => setShowDayCutEditor(true)}
+              className="absolute right-0 top-0 inline-flex items-center gap-2 text-xs text-gray-300 bg-slate-800/70 border border-slate-700/60 rounded-full px-3 py-1 hover:border-slate-500 transition"
+            >
+              <Clock size={14} />
+              Day cut · {formatTimezoneLabel()}
+            </button>
             {goalsLoading && (
               <p className="mt-2 text-xs text-gray-500">Refreshing goals...</p>
             )}
@@ -298,10 +431,14 @@ export default function Goals() {
               <p className="text-xs text-gray-400">Today</p>
               <p className="text-lg font-bold text-blue-400">{formatTime(todayMinutes)}</p>
             </div>
-            <div className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-purple-500/20">
+            <button
+              type="button"
+              onClick={() => setShowWeeklyHistogram(true)}
+              className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-purple-500/20 hover:border-purple-500/50 transition-all text-left"
+            >
               <p className="text-xs text-gray-400">Week</p>
               <p className="text-lg font-bold text-purple-400">{formatTime(weekMinutes)}</p>
-            </div>
+            </button>
             <div className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-yellow-500/20">
               <p className="text-xs text-gray-400">Gold</p>
               <p className="text-lg font-bold text-yellow-300">{profile?.gold ?? 0}</p>
@@ -693,6 +830,75 @@ export default function Goals() {
           restCredits={profile?.rest_credits ?? 0}
           onClose={() => setShowCalendar(false)}
         />
+      )}
+
+      {showDayCutEditor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-sm bg-slate-900 rounded-2xl border border-blue-500/30 shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-400 uppercase tracking-wide">Day Cut Settings</p>
+                <h3 className="text-lg font-semibold text-white">Daily reset timezone</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDayCutEditor(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs text-gray-400">Timezone</label>
+              <select
+                value={timezoneOffset}
+                onChange={(event) => setTimezoneOffset(Number(event.target.value))}
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm"
+              >
+                {TIMEZONE_OPTIONS.map((option) => (
+                  <option key={option.offsetMinutes} value={option.offsetMinutes}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <label className="block text-xs text-gray-400">Reset time</label>
+              <input
+                type="time"
+                step={60}
+                value={dayCutTime}
+                onChange={(event) => setDayCutTime(event.target.value)}
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm"
+              />
+              <p className="text-xs text-gray-500">
+                The day starts at this time for streaks and stats in the selected timezone.
+              </p>
+              {dayCutError && <p className="text-xs text-red-400">{dayCutError}</p>}
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowDayCutEditor(false)}
+                className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-gray-200 text-xs font-semibold rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveDayCutTime}
+                className="px-3 py-1.5 bg-blue-500/90 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-colors"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showWeeklyHistogram && (
+        <WeeklyHistogramModal onClose={() => setShowWeeklyHistogram(false)} />
       )}
     </div>
   );
