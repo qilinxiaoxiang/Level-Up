@@ -13,8 +13,9 @@ A personal productivity application that transforms your daily tasks and goals i
 ### Task Management
 **Daily Tasks**:
 - Recurring tasks with daily time targets (e.g., "Study - 60 min/day")
+- Real-time progress calculation from pomodoro sessions
 - Progress bars showing completion status
-- Automatic streak tracking
+- Automatic streak tracking with customizable day cut time
 - Rest credits for maintaining flexibility
 
 **One-Time Tasks**:
@@ -29,19 +30,13 @@ A personal productivity application that transforms your daily tasks and goals i
 - Real-time countdown timer
 - Focus rating (1-5 stars) after completion
 - Accomplishment logging
-- Automatic XP and gold rewards
+- Real-time time tracking and statistics
 
-### RPG Progression
-- **Level system**: Gain XP from completed Pomodoros
-- **Gold economy**: Earn gold to purchase shop items
-- **HP system**: Tracks energy/willpower (currently not penalized)
+### Progress Tracking
 - **Streak tracking**: Build and maintain daily completion streaks
 - **Rest credits**: Banking system for missed days
-
-### Shop System
-- Create custom reward goals (e.g., "New keyboard - 500 gold")
-- Purchase items with earned gold
-- Track purchased items
+- **Time statistics**: View Today, Week, and Total accumulated time
+- **Real-time status**: Daily task "Done today" status calculated live from pomodoros
 
 ### Check-In Calendar
 - Monthly view of daily completions
@@ -141,16 +136,17 @@ npm run build
 1. **Sign up** with email/password
 2. **Set goals** - Required: 3-year, 1-year, and 1-month goals
 3. **Create tasks** - Add daily recurring tasks and one-time project tasks
-4. **Start working** - Click "Start Pomodoro" on any task
-5. **Complete session** - Rate focus and log accomplishments
-6. **Earn rewards** - Receive gold and XP automatically
+4. **Configure day cut** - Set your preferred daily reset time and timezone
+5. **Start working** - Click "Start Pomodoro" on any task
+6. **Complete session** - Rate focus and log accomplishments
+7. **Track progress** - View real-time statistics and streaks
 
 ### Daily Workflow
 1. View goals and tasks on main page
 2. Start Pomodoro sessions on tasks
-3. Complete daily task targets to maintain streak
+3. Complete daily task targets to maintain streak (resets at your custom day cut time)
 4. Check progress on burn-down charts for projects
-5. Purchase reward items from shop when goals are met
+5. Monitor time statistics: Today, Week, and Total accumulated
 6. Review calendar to track consistency
 
 ## 🎯 Current Implementation Status
@@ -160,11 +156,11 @@ npm run build
 - Goal management (3-tier system)
 - Task CRUD (daily and one-time)
 - Pomodoro timer with focus tracking
-- XP/leveling system
-- Gold rewards
+- Real-time daily task status calculation
+- Customizable day cut time with timezone support
 - Streak tracking with rest credits
 - Check-in calendar
-- Shop system (user-defined items)
+- Time statistics (Today, Week, Total)
 - Burn-down charts
 - Task archiving
 - Mobile-responsive UI
@@ -173,23 +169,18 @@ npm run build
 ### 🚧 Planned Features
 See `next.md` for upcoming features and improvements:
 - Enhanced visual feedback
-- Daily/weekly time summaries
 - Achievement system
-- Equipment system
-- HP penalty system
 - Task templates
 - Advanced analytics
+- Category-based time tracking
 
 ## 🔧 Key Database Features
 
 ### Automatic Profile Creation
-New users automatically get a profile with default stats (Level 1, 100 HP, 0 Gold/XP).
+New users automatically get a profile with default stats and preferences.
 
-### XP & Leveling
-Formula: `XP needed = current_level * 100`
-- Level 1→2: 100 XP
-- Level 2→3: 200 XP
-- Each level increases max HP by +10
+### Real-Time Status Calculation
+Daily task "Done today" status is calculated in real-time from pomodoro sessions. No persistence needed - status reflects actual time logged since last day cut.
 
 ### Row Level Security
 All data is isolated per user - you can only access your own tasks, goals, and progress.
@@ -197,15 +188,14 @@ All data is isolated per user - you can only access your own tasks, goals, and p
 ## 📊 Database Schema
 
 Complete schema available in `database/schema.sql`, including:
-- `user_profiles` - Character stats and preferences
+- `user_profiles` - User preferences and streak tracking
 - `goals` - 3-tier goal system
 - `tasks` - Daily and one-time tasks
 - `task_relationships` - Links between one-time and daily tasks
-- `pomodoros` - Completed work sessions
-- `daily_task_completions` - Daily progress tracking
+- `pomodoros` - Completed work sessions (source of truth for time tracking)
 - `active_pomodoros` - Current running sessions
-- `user_shop_items` - Custom shop rewards
-- `streak_history` - Streak tracking
+
+**Note**: Run `database/cleanup-rewards-and-daily-completions.sql` on existing databases to remove deprecated tables and columns.
 
 ## 🤝 Contributing
 
@@ -217,14 +207,14 @@ Private project - Not licensed for public use.
 
 ## 🎨 Design Philosophy
 
-**The Loop**: Complete Tasks → Earn Rewards → Level Up → Set Bigger Goals → Repeat
+**The Loop**: Set Goals → Complete Tasks → Track Progress → Maintain Streaks → Achieve More
 
-The app gamifies productivity without being distracting. It's designed to:
-- Make task completion feel rewarding
-- Visualize long-term progress
-- Encourage consistent daily habits
-- Provide flexible goal setting
-- Balance work with rest (via rest credits)
+The app provides structure and motivation for productivity without gamification distractions. It's designed to:
+- Make task completion visible and measurable
+- Visualize long-term progress with real-time statistics
+- Encourage consistent daily habits with streak tracking
+- Provide flexible goal setting with 3-tier timeline
+- Balance work with rest (via rest credits and customizable day cut)
 
 ---
 

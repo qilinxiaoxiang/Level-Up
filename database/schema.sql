@@ -199,7 +199,24 @@ CREATE UNIQUE INDEX idx_active_pomodoros_user_active
   WHERE is_active = true;
 
 -- ============================================================
--- DAILY TASK COMPLETIONS
+-- DAILY CHECK-INS (Streak Tracking)
+-- ============================================================
+-- Lightweight table to track when users complete all daily tasks
+-- Used for streak calculation without persisting individual task completion
+CREATE TABLE daily_check_ins (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  date DATE NOT NULL,
+  completed_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+
+  UNIQUE(user_id, date)
+);
+
+CREATE INDEX idx_daily_check_ins_user_date ON daily_check_ins(user_id, date DESC);
+
+-- ============================================================
+-- DAILY TASK COMPLETIONS (DEPRECATED - TO BE REMOVED)
 -- ============================================================
 -- Tracks daily progress for recurring tasks
 CREATE TABLE daily_task_completions (
@@ -360,6 +377,7 @@ ALTER TABLE goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE task_relationships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE active_pomodoros ENABLE ROW LEVEL SECURITY;
+ALTER TABLE daily_check_ins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE daily_task_completions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pomodoros ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_inventory ENABLE ROW LEVEL SECURITY;
@@ -396,6 +414,10 @@ CREATE POLICY "Users can manage own task relationships" ON task_relationships
 
 -- Policies for active_pomodoros
 CREATE POLICY "Users can manage own active pomodoros" ON active_pomodoros
+  FOR ALL USING (auth.uid() = user_id);
+
+-- Policies for daily_check_ins
+CREATE POLICY "Users can manage own check-ins" ON daily_check_ins
   FOR ALL USING (auth.uid() = user_id);
 
 -- Policies for daily_task_completions

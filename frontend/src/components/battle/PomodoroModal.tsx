@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useUserStore } from '../../store/useUserStore';
 import type { Task } from '../../types';
-import LevelUpModal from '../common/LevelUpModal';
-import { getLocalDateString, getLocalDayDiff } from '../../utils/dateUtils';
+import { getLocalDateString, getStartOfDayUTC, getEndOfDayUTC } from '../../utils/dateUtils';
 
 interface PomodoroModalProps {
   task: Task;
@@ -21,7 +20,6 @@ interface PomodoroModalProps {
       is_active?: boolean | null;
     }
   ) => Promise<void>;
-  onRewards: (rewards: { gold: number; xp: number }) => void;
   onDailyProgressUpdate?: (taskId: string, minutes: number) => void;
   onTimeSummaryUpdate?: (minutes: number, completedAt: Date) => void;
 }
@@ -38,11 +36,6 @@ export interface ActivePomodoro {
   is_active: boolean;
 }
 
-interface RewardResult {
-  leveled_up: boolean;
-  new_level: number;
-}
-
 export default function PomodoroModal({
   task,
   activeSession,
@@ -50,7 +43,6 @@ export default function PomodoroModal({
   onSessionEnd,
   onClose,
   onTaskUpdate,
-  onRewards,
   onDailyProgressUpdate,
   onTimeSummaryUpdate,
 }: PomodoroModalProps) {
@@ -67,7 +59,6 @@ export default function PomodoroModal({
   const [showReport, setShowReport] = useState(false);
   const [focusRating, setFocusRating] = useState(3);
   const [note, setNote] = useState('');
-  const [levelUpLevel, setLevelUpLevel] = useState<number | null>(null);
 
   const formattedTime = useMemo(() => {
     const minutes = Math.floor(secondsLeft / 60);
@@ -164,6 +155,77 @@ export default function PomodoroModal({
     }
   };
 
+  const calculateAndUpdateStreak = async (userId: string, todayDate: string) => {
+    try {
+      // Fetch recent check-ins ordered by date descending
+      const { data: checkIns } = await supabase
+        .from('daily_check_ins')
+        .select('date')
+        .eq('user_id', userId)
+        .order('date', { ascending: false })
+        .limit(365); // Last year is enough
+
+      if (!checkIns || checkIns.length === 0) {
+        // No check-ins, streak is 0
+        await supabase
+          .from('user_profiles')
+          .update({ current_streak: 0, last_streak_date: null })
+          .eq('id', userId);
+        return;
+      }
+
+      // Get user's profile for rest credits and longest streak
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('rest_credits, longest_streak')
+        .eq('id', userId)
+        .single();
+
+      if (!profile) return;
+
+      let streakCount = 0;
+      let expectedDate = new Date(todayDate);
+      let restCredits = profile.rest_credits || 0;
+
+      // Count consecutive check-ins going backwards from today
+      for (const checkIn of checkIns) {
+        const checkInDate = new Date(checkIn.date);
+        const daysDiff = Math.floor(
+          (expectedDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        if (daysDiff === 0) {
+          // This date matches expected, continue streak
+          streakCount++;
+          expectedDate = new Date(expectedDate.getTime() - 24 * 60 * 60 * 1000);
+        } else if (daysDiff > 0 && daysDiff <= restCredits + 1) {
+          // Gap can be covered by rest credits
+          const creditsNeeded = daysDiff - 1;
+          restCredits -= creditsNeeded;
+          streakCount++;
+          expectedDate = new Date(checkInDate.getTime() - 24 * 60 * 60 * 1000);
+        } else {
+          // Gap too large, streak broken
+          break;
+        }
+      }
+
+      const newLongestStreak = Math.max(profile.longest_streak || 0, streakCount);
+
+      // Update user profile
+      await supabase
+        .from('user_profiles')
+        .update({
+          current_streak: streakCount,
+          longest_streak: newLongestStreak,
+          last_streak_date: todayDate,
+        })
+        .eq('id', userId);
+    } catch (error) {
+      console.error('Failed to calculate streak:', error);
+    }
+  };
+
   const handleComplete = async () => {
     if (!user || !startTime || isSaving) return;
 
@@ -180,7 +242,6 @@ export default function PomodoroModal({
             : null
           : task.estimated_minutes ?? (task.estimated_pomodoros ? task.estimated_pomodoros * 25 : null);
       const isCompleted = targetPomodoros ? updatedMinutes >= targetPomodoros : false;
-      const rewards = { gold: task.gold_reward || 0, xp: task.xp_reward || 0 };
 
       // Insert pomodoro record (single source of truth for time tracking)
       const { error: insertError } = await supabase.from('pomodoros').insert({
@@ -193,8 +254,6 @@ export default function PomodoroModal({
         enemy_name: task.category || null,
         focus_rating: focusRating,
         accomplishment_note: note.trim() ? note.trim() : null,
-        gold_earned: 0,
-        xp_earned: 0,
       });
 
       if (insertError) throw insertError;
@@ -239,49 +298,7 @@ export default function PomodoroModal({
             const relatedUpdatedPomodoros = (relatedTask.completed_pomodoros || 0) + 1;
 
             if (relatedTask.task_type === 'daily') {
-              // Update daily task completion
-              const today = getLocalDateString();
-              const utcDate = new Date().toISOString().slice(0, 10);
-
-              const { data: allRecords } = await supabase
-                .from('daily_task_completions')
-                .select('*')
-                .eq('task_id', relatedTask.id)
-                .in('date', [today, utcDate]);
-
-              if (allRecords && allRecords.length > 0) {
-                const totalExistingMinutes = allRecords.reduce((sum, rec) => sum + (rec.minutes_completed || 0), 0);
-                const nextMinutes = totalExistingMinutes + durationMinutes;
-
-                const primaryRecord = allRecords.find(r => r.date === today) || allRecords[0];
-                const recordsToDelete = allRecords.filter(r => r.id !== primaryRecord.id);
-
-                await supabase
-                  .from('daily_task_completions')
-                  .update({
-                    minutes_completed: nextMinutes,
-                    is_completed: !!(relatedTask.target_duration_minutes && nextMinutes >= relatedTask.target_duration_minutes),
-                    updated_at: new Date().toISOString(),
-                    date: today,
-                  })
-                  .eq('id', primaryRecord.id);
-
-                if (recordsToDelete.length > 0) {
-                  await supabase
-                    .from('daily_task_completions')
-                    .delete()
-                    .in('id', recordsToDelete.map((record) => record.id));
-                }
-              } else {
-                await supabase.from('daily_task_completions').insert({
-                  task_id: relatedTask.id,
-                  user_id: user.id,
-                  date: today,
-                  minutes_completed: durationMinutes,
-                  target_minutes: relatedTask.target_duration_minutes || durationMinutes,
-                  is_completed: !!(relatedTask.target_duration_minutes && durationMinutes >= relatedTask.target_duration_minutes),
-                });
-              }
+              // Update daily task progress - notify for real-time calculation
               onDailyProgressUpdate?.(relatedTask.id, durationMinutes);
             } else if (relatedTask.task_type === 'onetime') {
               // Update one-time task progress
@@ -304,162 +321,65 @@ export default function PomodoroModal({
       }
 
       if (isDaily) {
+        // Daily task progress is calculated in real-time from pomodoros
+        // No persistence needed - just notify for UI update
+        onDailyProgressUpdate?.(task.id, durationMinutes);
+
+        // Check if all active daily tasks are complete for streak tracking
         const today = getLocalDateString();
-        const utcDate = new Date().toISOString().slice(0, 10);
+        const dayStart = getStartOfDayUTC();
+        const dayEnd = getEndOfDayUTC();
 
-        // Query for both local and UTC dates to handle transition period
-        const { data: allRecords, error: existingError } = await supabase
-          .from('daily_task_completions')
-          .select('*')
-          .eq('task_id', task.id)
-          .in('date', [today, utcDate]);
+        // Get all active daily tasks
+        const { data: dailyTasks } = await supabase
+          .from('tasks')
+          .select('id, target_duration_minutes')
+          .eq('user_id', user.id)
+          .eq('task_type', 'daily')
+          .eq('is_active', true)
+          .eq('is_archived', false);
 
-        if (existingError && existingError.code !== 'PGRST116') {
-          throw existingError;
-        }
+        if (dailyTasks && dailyTasks.length > 0) {
+          // Get today's pomodoros for all tasks
+          const { data: todayPomodoros } = await supabase
+            .from('pomodoros')
+            .select('task_id, duration_minutes')
+            .eq('user_id', user.id)
+            .gte('completed_at', dayStart)
+            .lte('completed_at', dayEnd);
 
-        // Consolidate records if there are multiple (transition from UTC to local)
-        if (allRecords && allRecords.length > 0) {
-          // Calculate total minutes from all records
-          const totalExistingMinutes = allRecords.reduce((sum, rec) => sum + (rec.minutes_completed || 0), 0);
-          const nextMinutes = totalExistingMinutes + durationMinutes;
-          const nextCompleted = !!(
-            task.target_duration_minutes && nextMinutes >= task.target_duration_minutes
-          );
-
-          // Use the record with local date if it exists, otherwise use the first one
-          const primaryRecord = allRecords.find(r => r.date === today) || allRecords[0];
-          const recordsToDelete = allRecords.filter(r => r.id !== primaryRecord.id);
-
-          // Update primary record with consolidated minutes
-          await supabase
-            .from('daily_task_completions')
-            .update({
-              minutes_completed: nextMinutes,
-              is_completed: nextCompleted,
-              updated_at: new Date().toISOString(),
-              date: today, // Ensure it uses local date
-            })
-            .eq('id', primaryRecord.id);
-
-          // Delete duplicate records
-          if (recordsToDelete.length > 0) {
-            await supabase
-              .from('daily_task_completions')
-              .delete()
-              .in('id', recordsToDelete.map(r => r.id));
-          }
-
-          const existing = primaryRecord;
-
-          if (!existing.is_completed && nextCompleted) {
-            const { data: rewardResult, error: rewardError } = await supabase.rpc('add_rewards', {
-              user_uuid: user.id,
-              gold_amount: rewards.gold,
-              xp_amount: rewards.xp,
-            });
-
-            if (rewardError) throw rewardError;
-
-            await supabase
-              .from('pomodoros')
-              .update({ gold_earned: rewards.gold, xp_earned: rewards.xp })
-              .eq('task_id', task.id)
-              .eq('completed_at', completedAt.toISOString());
-
-            const reward = rewardResult as unknown as RewardResult;
-            if (reward?.leveled_up) {
-              setLevelUpLevel(reward.new_level);
+          // Calculate minutes per task
+          const taskMinutes: Record<string, number> = {};
+          (todayPomodoros || []).forEach((p) => {
+            if (p.task_id) {
+              taskMinutes[p.task_id] = (taskMinutes[p.task_id] || 0) + (p.duration_minutes || 0);
             }
-
-            onRewards(rewards);
-          }
-        } else {
-          const reachedTarget =
-            task.target_duration_minutes
-              ? durationMinutes >= task.target_duration_minutes
-              : false;
-
-          await supabase.from('daily_task_completions').insert({
-            task_id: task.id,
-            user_id: user.id,
-            date: today,
-            minutes_completed: durationMinutes,
-            target_minutes: task.target_duration_minutes || durationMinutes,
-            is_completed: reachedTarget,
           });
 
-          if (reachedTarget) {
-            const { data: rewardResult, error: rewardError } = await supabase.rpc('add_rewards', {
-              user_uuid: user.id,
-              gold_amount: rewards.gold,
-              xp_amount: rewards.xp,
-            });
+          // Check if all daily tasks reached their targets
+          const allTasksComplete = dailyTasks.every((t) => {
+            const completed = taskMinutes[t.id] || 0;
+            const target = t.target_duration_minutes || 0;
+            return target > 0 && completed >= target;
+          });
 
-            if (rewardError) throw rewardError;
-
+          if (allTasksComplete) {
+            // Upsert check-in record (handles duplication automatically)
             await supabase
-              .from('pomodoros')
-              .update({ gold_earned: rewards.gold, xp_earned: rewards.xp })
-              .eq('task_id', task.id)
-              .eq('completed_at', completedAt.toISOString());
+              .from('daily_check_ins')
+              .upsert(
+                {
+                  user_id: user.id,
+                  date: today,
+                  completed_at: completedAt.toISOString(),
+                },
+                { onConflict: 'user_id,date' }
+              );
 
-            const reward = rewardResult as unknown as RewardResult;
-            if (reward?.leveled_up) {
-              setLevelUpLevel(reward.new_level);
-            }
-
-            onRewards(rewards);
+            // Calculate and update streak in frontend
+            await calculateAndUpdateStreak(user.id, today);
           }
         }
-
-        if (task.target_duration_minutes) {
-          const today = getLocalDateString();
-          const { data: dailyTasks } = await supabase
-            .from('tasks')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('task_type', 'daily')
-            .eq('is_active', true)
-            .eq('is_archived', false);
-
-          const dailyTaskIds = (dailyTasks || []).map((row) => row.id);
-          if (dailyTaskIds.length > 0) {
-            const { data: completedToday } = await supabase
-              .from('daily_task_completions')
-              .select('task_id')
-              .in('task_id', dailyTaskIds)
-              .eq('date', today)
-              .eq('is_completed', true);
-
-            if (completedToday && completedToday.length === dailyTaskIds.length) {
-              const { data: profile } = await supabase
-                .from('user_profiles')
-                .select('current_streak, longest_streak, last_streak_date')
-                .eq('id', user.id)
-                .single();
-
-              if (profile?.last_streak_date !== today) {
-                const dayDiff = profile?.last_streak_date
-                  ? getLocalDayDiff(profile.last_streak_date, today)
-                  : null;
-                const currentStreak = profile?.current_streak || 0;
-                const nextStreak =
-                  dayDiff === 1 ? currentStreak + 1 : 1;
-                await supabase
-                  .from('user_profiles')
-                  .update({
-                    current_streak: nextStreak,
-                    longest_streak: Math.max(profile?.longest_streak || 0, nextStreak),
-                    last_streak_date: today,
-                  })
-                  .eq('id', user.id);
-              }
-            }
-          }
-        }
-
-        onDailyProgressUpdate?.(task.id, durationMinutes);
       }
 
       const sessionId = localSession?.id ?? activeSession?.id;
@@ -469,28 +389,6 @@ export default function PomodoroModal({
         setLocalSession(null);
       }
 
-      if (!isDaily && isCompleted && !task.is_completed) {
-        const { data: rewardResult, error: rewardError } = await supabase.rpc('add_rewards', {
-          user_uuid: user.id,
-          gold_amount: rewards.gold,
-          xp_amount: rewards.xp,
-        });
-
-        if (rewardError) throw rewardError;
-
-        await supabase
-          .from('pomodoros')
-          .update({ gold_earned: rewards.gold, xp_earned: rewards.xp })
-          .eq('task_id', task.id)
-          .eq('completed_at', completedAt.toISOString());
-
-        const reward = rewardResult as unknown as RewardResult;
-        if (reward?.leveled_up) {
-          setLevelUpLevel(reward.new_level);
-        }
-
-        onRewards(rewards);
-      }
       onTimeSummaryUpdate?.(durationMinutes, completedAt);
       fetchProfile();
       setShowReport(false);
@@ -668,9 +566,6 @@ export default function PomodoroModal({
           )}
         </div>
       </div>
-      {levelUpLevel && (
-        <LevelUpModal level={levelUpLevel} onClose={() => setLevelUpLevel(null)} />
-      )}
     </div>
   );
 }

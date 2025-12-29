@@ -7,7 +7,6 @@ import TaskForm from '../components/tasks/TaskForm';
 import TaskCard from '../components/tasks/TaskCard';
 import PomodoroModal, { type ActivePomodoro } from '../components/battle/PomodoroModal';
 import BurnDownModal from '../components/tasks/BurnDownModal';
-import ShopPanel from '../components/shop/ShopPanel';
 import CheckInCalendar from '../components/calendar/CheckInCalendar';
 import WeeklyHistogramModal from '../components/dashboard/WeeklyHistogramModal';
 import { formatDistanceToNow } from 'date-fns';
@@ -56,13 +55,13 @@ export default function Goals() {
   const [activePomodoroTask, setActivePomodoroTask] = useState<Task | null>(null);
   const [activeSession, setActiveSession] = useState<ActivePomodoro | null>(null);
   const [pomodoroError, setPomodoroError] = useState<string | null>(null);
-  const [lastReward, setLastReward] = useState<{ gold: number; xp: number } | null>(null);
   const [dailyProgress, setDailyProgress] = useState<Record<string, number>>({});
   const [showArchive, setShowArchive] = useState(false);
   const [showBurndownFor, setShowBurndownFor] = useState<Task | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
   const [todayMinutes, setTodayMinutes] = useState(0);
   const [weekMinutes, setWeekMinutes] = useState(0);
+  const [totalMinutes, setTotalMinutes] = useState(0);
   const [showDayCutEditor, setShowDayCutEditor] = useState(false);
   const [dayCutTime, setDayCutTime] = useState('00:00');
   const [dayCutError, setDayCutError] = useState<string | null>(null);
@@ -137,143 +136,31 @@ export default function Goals() {
   useEffect(() => {
     const fetchDailyProgress = async () => {
       if (!user || !profile) return;
-      const today = getLocalDateString();
-      const utcDate = new Date().toISOString().slice(0, 10);
+
+      // Calculate daily progress in real-time from pomodoros
+      // No persistence needed - status is calculated fresh based on current day cut
       const dayStart = getStartOfDayUTC();
       const dayEnd = getEndOfDayUTC();
 
-      // Query for both local and UTC dates to handle transition period
-      const { data: dateData, error } = await supabase
-        .from('daily_task_completions')
-        .select('*')
+      const { data: pomodoros, error } = await supabase
+        .from('pomodoros')
+        .select('task_id, duration_minutes')
         .eq('user_id', user.id)
-        .in('date', [today, utcDate]);
+        .gte('completed_at', dayStart)
+        .lte('completed_at', dayEnd);
 
       if (error) {
         console.error('❌ Error fetching daily progress:', error);
         return;
       }
 
-      const { data: rangeData, error: rangeError } = await supabase
-        .from('daily_task_completions')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('created_at', dayStart)
-        .lte('created_at', dayEnd);
-
-      if (rangeError) {
-        console.error('❌ Error fetching daily progress range:', rangeError);
-        return;
-      }
-
-      const combined = new Map<string, any>();
-      (dateData || []).forEach((row) => combined.set(row.id, row));
-      (rangeData || []).forEach((row) => combined.set(row.id, row));
-      const dateMatches = Array.from(combined.values());
-      const removedIds = new Set<string>();
-      const todayStart = new Date(dayStart).getTime();
-      const todayEnd = new Date(dayEnd).getTime();
-      const todayMap = new Map<string, typeof dateMatches[number]>();
-      dateMatches
-        .filter((row) => row.date === today)
-        .forEach((row) => todayMap.set(row.task_id, row));
-
-      const candidates = dateMatches.filter((row) => {
-        if (row.date === today) return false;
-        if (!row.target_minutes || row.target_minutes <= 0) return false;
-        const createdAt = new Date(row.created_at).getTime();
-        return createdAt >= todayStart && createdAt <= todayEnd;
-      });
-
-      for (const candidate of candidates) {
-        const todayRecord = todayMap.get(candidate.task_id);
-        if (todayRecord) {
-          const nextMinutes =
-            (todayRecord.minutes_completed || 0) + (candidate.minutes_completed || 0);
-          await supabase
-            .from('daily_task_completions')
-            .update({
-              minutes_completed: nextMinutes,
-              is_completed: !!(todayRecord.target_minutes && nextMinutes >= todayRecord.target_minutes),
-              date: today,
-            })
-            .eq('id', todayRecord.id);
-
-          await supabase
-            .from('daily_task_completions')
-            .delete()
-            .eq('id', candidate.id);
-
-          todayRecord.minutes_completed = nextMinutes;
-          removedIds.add(candidate.id);
-        } else {
-          await supabase
-            .from('daily_task_completions')
-            .update({ date: today })
-            .eq('id', candidate.id);
-          candidate.date = today;
-          todayMap.set(candidate.task_id, candidate);
-        }
-      }
-
-      // Group records by task_id to find duplicates
-      const taskGroups: Record<string, any[]> = {};
-      dateMatches.filter((row) => !removedIds.has(row.id)).forEach((row) => {
-        if (row.task_id) {
-          if (!taskGroups[row.task_id]) {
-            taskGroups[row.task_id] = [];
-          }
-          taskGroups[row.task_id].push(row);
-        }
-      });
-
-      // Consolidate duplicates (UTC + local date records)
-      const consolidationPromises: Promise<any>[] = [];
+      // Group by task_id and sum duration_minutes
       const map: Record<string, number> = {};
-
-      Object.entries(taskGroups).forEach(([taskId, records]) => {
-        if (records.length > 1) {
-          const totalMinutes = records.reduce((sum, r) => sum + (r.minutes_completed || 0), 0);
-
-          const primaryRecord = records.find(r => r.date === today) || records[0];
-          const recordsToDelete = records.filter(r => r.id !== primaryRecord.id);
-
-          // Update primary record
-          consolidationPromises.push(
-            Promise.resolve(
-              supabase
-                .from('daily_task_completions')
-                .update({
-                  minutes_completed: totalMinutes,
-                  date: today,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq('id', primaryRecord.id)
-            )
-          );
-
-          // Delete duplicates
-          if (recordsToDelete.length > 0) {
-            consolidationPromises.push(
-              Promise.resolve(
-                supabase
-                  .from('daily_task_completions')
-                  .delete()
-                  .in('id', recordsToDelete.map(r => r.id))
-              )
-            );
-          }
-
-          map[taskId] = totalMinutes;
-        } else {
-          map[taskId] = records[0].minutes_completed || 0;
+      (pomodoros || []).forEach((p) => {
+        if (p.task_id) {
+          map[p.task_id] = (map[p.task_id] || 0) + (p.duration_minutes || 0);
         }
       });
-
-      // Execute consolidation
-      if (consolidationPromises.length > 0) {
-        await Promise.all(consolidationPromises);
-      }
 
       setDailyProgress(map);
     };
@@ -311,6 +198,17 @@ export default function Goals() {
         if (weekData) {
           const total = weekData.reduce((sum, p) => sum + (p.duration_minutes || 0), 0);
           setWeekMinutes(total);
+        }
+
+        // Fetch total accumulated time (all-time)
+        const { data: totalData } = await supabase
+          .from('pomodoros')
+          .select('duration_minutes')
+          .eq('user_id', user.id);
+
+        if (totalData) {
+          const total = totalData.reduce((sum, p) => sum + (p.duration_minutes || 0), 0);
+          setTotalMinutes(total);
         }
       } catch (error) {
         console.error('Failed to fetch time summary:', error);
@@ -421,7 +319,7 @@ export default function Goals() {
             )}
           </div>
 
-          {/* Stats Grid - Today, Week, Gold, Streak */}
+          {/* Stats Grid - Today, Week, Total, Streak */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-blue-500/20">
               <p className="text-xs text-gray-400">Today</p>
@@ -435,9 +333,9 @@ export default function Goals() {
               <p className="text-xs text-gray-400">Week</p>
               <p className="text-lg font-bold text-purple-400">{formatTime(weekMinutes)}</p>
             </button>
-            <div className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-yellow-500/20">
-              <p className="text-xs text-gray-400">Gold</p>
-              <p className="text-lg font-bold text-yellow-300">{profile?.gold ?? 0}</p>
+            <div className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-emerald-500/20">
+              <p className="text-xs text-gray-400">Total</p>
+              <p className="text-lg font-bold text-emerald-400">{formatTime(totalMinutes)}</p>
             </div>
             <button
               type="button"
@@ -447,24 +345,6 @@ export default function Goals() {
               <p className="text-xs text-gray-400">Streak</p>
               <p className="text-lg font-bold text-orange-400">{profile?.current_streak ?? 0} 🔥</p>
             </button>
-          </div>
-
-          {/* XP Bar */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-400">Level {profile?.level ?? 1}</span>
-              <span className="text-blue-300 font-medium">
-                {profile?.current_xp ?? 0}/{(profile?.level ?? 1) * 100} XP
-              </span>
-            </div>
-            <div className="w-full bg-slate-800/80 rounded-full h-2.5 border border-slate-700/50">
-              <div
-                className="bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-400 h-2.5 rounded-full transition-all shadow-lg shadow-blue-500/50"
-                style={{
-                  width: `${Math.min(((profile?.current_xp ?? 0) / ((profile?.level ?? 1) * 100)) * 100, 100)}%`,
-                }}
-              />
-            </div>
           </div>
         </div>
 
@@ -697,10 +577,6 @@ export default function Goals() {
           </div>
         </section>
 
-        {/* Shop Panel - Moved to Bottom */}
-        <section>
-          <ShopPanel />
-        </section>
       </div>
 
       {isTaskFormOpen && (
@@ -756,7 +632,6 @@ export default function Goals() {
           onTaskUpdate={async (taskId, updates) => {
             await updateTask(taskId, updates);
           }}
-          onRewards={(rewards) => setLastReward(rewards)}
           onDailyProgressUpdate={(taskId, minutes) => {
             setDailyProgress((prev) => ({
               ...prev,

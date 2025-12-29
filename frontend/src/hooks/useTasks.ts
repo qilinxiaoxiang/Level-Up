@@ -13,8 +13,6 @@ export interface TaskInput {
   deadline?: string | null;
   estimated_pomodoros?: number | null;
   estimated_minutes?: number | null;
-  gold_reward?: number;
-  xp_reward?: number;
   completed_pomodoros?: number;
   completed_minutes?: number;
   is_completed?: boolean;
@@ -85,8 +83,6 @@ export function useTasks(): UseTasksReturn {
         deadline: input.deadline ?? null,
         estimated_pomodoros: input.estimated_pomodoros ?? null,
         estimated_minutes: input.estimated_minutes ?? null,
-        gold_reward: input.gold_reward ?? 10,
-        xp_reward: input.xp_reward ?? 20,
         is_active: true,
         is_completed: false,
       };
@@ -136,8 +132,6 @@ export function useTasks(): UseTasksReturn {
       if (updates.estimated_minutes !== undefined) {
         payload.estimated_minutes = updates.estimated_minutes ?? null;
       }
-      if (updates.gold_reward !== undefined) payload.gold_reward = updates.gold_reward;
-      if (updates.xp_reward !== undefined) payload.xp_reward = updates.xp_reward;
       if (updates.completed_pomodoros !== undefined) {
         payload.completed_pomodoros = updates.completed_pomodoros;
       }

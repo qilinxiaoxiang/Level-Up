@@ -9,9 +9,6 @@ export interface UserProfile {
   id: string;
   username: string | null;
   level: number | null;
-  current_xp: number | null;
-  total_xp: number | null;
-  gold: number | null;
   current_hp: number | null;
   max_hp: number | null;
   strength: number | null;
@@ -60,9 +57,6 @@ export interface Task {
   estimated_minutes: number | null;
   completed_pomodoros: number | null;
   completed_minutes: number | null;
-  // Rewards
-  gold_reward: number | null;
-  xp_reward: number | null;
   // Status
   is_active: boolean | null;
   is_completed: boolean | null;
@@ -89,20 +83,15 @@ export interface Pomodoro {
   enemy_name: string | null;
   focus_rating: number | null;
   accomplishment_note: string | null;
-  gold_earned: number | null;
-  xp_earned: number | null;
   created_at: string | null;
   item_dropped_id: string | null;
 }
 
-export interface ShopItem {
+export interface DailyCheckIn {
   id: string;
-  user_id: string | null;
-  name: string;
-  description: string | null;
-  gold_cost: number;
-  is_purchased: boolean | null;
-  purchased_at: string | null;
+  user_id: string;
+  date: string;
+  completed_at: string;
   created_at: string | null;
 }
 

@@ -61,8 +61,6 @@ export default function TaskCard({
       ? String(task.estimated_pomodoros * 25)
       : ''
   );
-  const [goldReward, setGoldReward] = useState(String(task.gold_reward));
-  const [xpReward, setXpReward] = useState(String(task.xp_reward));
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
@@ -126,8 +124,6 @@ export default function TaskCard({
       estimated_minutes:
         task.task_type === 'onetime' ? Number(estimatedMinutes) || null : null,
       estimated_pomodoros: task.task_type === 'onetime' ? null : undefined,
-      gold_reward: Number(goldReward) || 0,
-      xp_reward: Number(xpReward) || 0,
     };
 
     try {
@@ -155,8 +151,6 @@ export default function TaskCard({
         ? String(task.estimated_pomodoros * 25)
         : ''
     );
-    setGoldReward(String(task.gold_reward));
-    setXpReward(String(task.xp_reward));
     setError(null);
     relationshipRef.current?.resetDraft();
     setIsEditing(false);
@@ -379,31 +373,6 @@ export default function TaskCard({
           </div>
         )}
       </div>
-
-      {isEditing && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Gold Reward</label>
-            <input
-              type="number"
-              min={0}
-              value={goldReward}
-              onChange={(event) => setGoldReward(event.target.value)}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">XP Reward</label>
-            <input
-              type="number"
-              min={0}
-              value={xpReward}
-              onChange={(event) => setXpReward(event.target.value)}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
-            />
-          </div>
-        </div>
-      )}
 
       {error && (
         <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm">
