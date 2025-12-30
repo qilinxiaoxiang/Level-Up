@@ -9,6 +9,7 @@ import PomodoroModal, { type ActivePomodoro } from '../components/battle/Pomodor
 import BurnDownModal from '../components/tasks/BurnDownModal';
 import CheckInCalendar from '../components/calendar/CheckInCalendar';
 import WeeklyHistogramModal from '../components/dashboard/WeeklyHistogramModal';
+import TodayPomodorosModal from '../components/dashboard/TodayPomodorosModal';
 import { formatDistanceToNow } from 'date-fns';
 import type { Task } from '../types';
 import { useUserStore } from '../store/useUserStore';
@@ -67,6 +68,7 @@ export default function Goals() {
   const [dayCutError, setDayCutError] = useState<string | null>(null);
   const [timezoneName, setTimezoneName] = useState('Asia/Shanghai');
   const [showWeeklyHistogram, setShowWeeklyHistogram] = useState(false);
+  const [showTodayPomodoros, setShowTodayPomodoros] = useState(false);
 
   useEffect(() => {
     if (!profile?.daily_reset_time) {
@@ -347,10 +349,14 @@ export default function Goals() {
 
           {/* Stats Grid - Today, Week, Total, Streak */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-blue-500/20">
+            <button
+              type="button"
+              onClick={() => setShowTodayPomodoros(true)}
+              className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-blue-500/20 hover:border-blue-500/40 transition-all text-left"
+            >
               <p className="text-xs text-gray-400">Today</p>
               <p className="text-lg font-bold text-blue-400">{formatTime(todayMinutes)}</p>
-            </div>
+            </button>
             <button
               type="button"
               onClick={() => setShowWeeklyHistogram(true)}
@@ -796,6 +802,15 @@ export default function Goals() {
 
       {showWeeklyHistogram && (
         <WeeklyHistogramModal onClose={() => setShowWeeklyHistogram(false)} />
+      )}
+
+      {showTodayPomodoros && user && profile && (
+        <TodayPomodorosModal
+          isOpen={showTodayPomodoros}
+          onClose={() => setShowTodayPomodoros(false)}
+          userId={user.id}
+          timezone={profile.timezone_name || 'Asia/Shanghai'}
+        />
       )}
     </div>
   );
