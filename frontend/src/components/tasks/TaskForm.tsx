@@ -188,7 +188,7 @@ export default function TaskForm({ onCreate, loading }: TaskFormProps) {
         </div>
       </div>
 
-      <div>
+      <div className="w-full">
         <label className="block text-sm font-medium text-gray-300 mb-2">
           Description
         </label>
@@ -201,7 +201,7 @@ export default function TaskForm({ onCreate, loading }: TaskFormProps) {
         />
       </div>
 
-      <div>
+      <div className="w-full">
         <label className="block text-sm font-medium text-gray-300 mb-2">
           Priority
         </label>
@@ -219,7 +219,7 @@ export default function TaskForm({ onCreate, loading }: TaskFormProps) {
       </div>
 
       {taskType === 'daily' && (
-        <div>
+        <div className="w-full">
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Target Duration (min)
           </label>
@@ -234,7 +234,7 @@ export default function TaskForm({ onCreate, loading }: TaskFormProps) {
       )}
 
       {taskType === 'onetime' && (
-        <div>
+        <div className="w-full">
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Deadline
           </label>
@@ -249,7 +249,7 @@ export default function TaskForm({ onCreate, loading }: TaskFormProps) {
       )}
 
       {taskType === 'onetime' && (
-        <div>
+        <div className="w-full">
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Estimated Minutes
           </label>
