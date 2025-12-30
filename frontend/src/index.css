@@ -36,17 +36,22 @@
 
   input[type="date"] {
     color-scheme: dark;
-    max-width: 100%;
-    width: 100%;
-    box-sizing: border-box;
+    max-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
   }
 
   input[type="date"]::-webkit-calendar-picker-indicator {
     filter: invert(1);
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-left: 0.5rem;
   }
 
   input[type="date"]::-webkit-date-and-time-value {
     text-align: left;
+    min-width: 0;
   }
 }
 
