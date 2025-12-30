@@ -201,66 +201,64 @@ export default function TaskForm({ onCreate, loading }: TaskFormProps) {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Priority
+        </label>
+        <select
+          value={priority}
+          onChange={(event) => setPriority(event.target.value as TaskPriority)}
+          className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
+        >
+          {PRIORITY_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {taskType === 'daily' ? (
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
-            Priority
+            Target Duration (min)
           </label>
-          <select
-            value={priority}
-            onChange={(event) => setPriority(event.target.value as TaskPriority)}
+          <input
+            type="number"
+            min={5}
+            value={targetDuration}
+            onChange={(event) => setTargetDuration(event.target.value)}
             className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
-          >
-            {PRIORITY_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          />
         </div>
-
-        {taskType === 'daily' ? (
-          <div className="md:col-span-2">
+      ) : (
+        <>
+          <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Target Duration (min)
+              Deadline
             </label>
             <input
-              type="number"
-              min={5}
-              value={targetDuration}
-              onChange={(event) => setTargetDuration(event.target.value)}
+              type="date"
+              required
+              value={deadline}
+              onChange={(event) => setDeadline(event.target.value)}
               className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
             />
           </div>
-        ) : (
-          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Deadline
-              </label>
-              <input
-                type="date"
-                required
-                value={deadline}
-                onChange={(event) => setDeadline(event.target.value)}
-                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Estimated Minutes
-              </label>
-              <input
-                type="number"
-                min={1}
-                value={estimatedMinutes}
-                onChange={(event) => setEstimatedMinutes(event.target.value)}
-                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Estimated Minutes
+            </label>
+            <input
+              type="number"
+              min={1}
+              value={estimatedMinutes}
+              onChange={(event) => setEstimatedMinutes(event.target.value)}
+              className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
+            />
           </div>
-        )}
-      </div>
+        </>
+      )}
 
       {taskType === 'onetime' && (
         <div className="space-y-2">
