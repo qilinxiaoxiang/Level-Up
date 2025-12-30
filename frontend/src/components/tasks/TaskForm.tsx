@@ -234,18 +234,19 @@ export default function TaskForm({ onCreate, loading }: TaskFormProps) {
       )}
 
       {taskType === 'onetime' && (
-        <div className="w-full" style={{ maxWidth: '100%', overflow: 'hidden' }}>
+        <div className="w-full">
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Deadline
           </label>
-          <input
-            type="date"
-            required
-            value={deadline}
-            onChange={(event) => setDeadline(event.target.value)}
-            className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
-            style={{ width: '100%', maxWidth: '100%', minWidth: '0', boxSizing: 'border-box' }}
-          />
+          <div className="flex w-full">
+            <input
+              type="date"
+              required
+              value={deadline}
+              onChange={(event) => setDeadline(event.target.value)}
+              className="flex-1 min-w-0 px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
+            />
+          </div>
         </div>
       )}
 
