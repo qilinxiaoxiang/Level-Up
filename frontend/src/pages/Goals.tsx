@@ -154,12 +154,38 @@ export default function Goals() {
         return;
       }
 
+      // Fetch task relationships to include time from linked one-time tasks
+      const { data: relationships } = await supabase
+        .from('task_relationships')
+        .select('onetime_task_id, daily_task_id')
+        .eq('user_id', user.id);
+
+      // Build a map: daily_task_id -> [onetime_task_ids]
+      const dailyToOnetimeMap: Record<string, string[]> = {};
+      (relationships || []).forEach((rel) => {
+        if (!dailyToOnetimeMap[rel.daily_task_id]) {
+          dailyToOnetimeMap[rel.daily_task_id] = [];
+        }
+        dailyToOnetimeMap[rel.daily_task_id].push(rel.onetime_task_id);
+      });
+
       // Group by task_id and sum duration_minutes
       const map: Record<string, number> = {};
       (pomodoros || []).forEach((p) => {
         if (p.task_id) {
           map[p.task_id] = (map[p.task_id] || 0) + (p.duration_minutes || 0);
         }
+      });
+
+      // For each daily task, add time from linked one-time tasks
+      Object.keys(dailyToOnetimeMap).forEach((dailyTaskId) => {
+        const linkedOnetimeIds = dailyToOnetimeMap[dailyTaskId];
+        linkedOnetimeIds.forEach((onetimeId) => {
+          const onetimeMinutes = map[onetimeId] || 0;
+          if (onetimeMinutes > 0) {
+            map[dailyTaskId] = (map[dailyTaskId] || 0) + onetimeMinutes;
+          }
+        });
       });
 
       setDailyProgress(map);
