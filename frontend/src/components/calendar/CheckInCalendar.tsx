@@ -10,11 +10,6 @@ interface CheckInCalendarProps {
   onClose: () => void;
 }
 
-interface CompletionRow {
-  date: string;
-  is_completed: boolean;
-}
-
 export default function CheckInCalendar({ streak, restCredits, onClose }: CheckInCalendarProps) {
   const { user, fetchProfile } = useUserStore();
   const [completions, setCompletions] = useState<Record<string, boolean>>({});
@@ -43,16 +38,16 @@ export default function CheckInCalendar({ streak, restCredits, onClose }: CheckI
       if (!user) return;
       setLoading(true);
       const { data, error } = await supabase
-        .from('daily_task_completions')
-        .select('date,is_completed')
+        .from('daily_check_ins')
+        .select('date')
         .eq('user_id', user.id)
         .gte('date', getLocalDateString(startOfMonth))
         .lte('date', getLocalDateString(endOfMonth));
 
       if (!error && data) {
         const map: Record<string, boolean> = {};
-        (data as CompletionRow[]).forEach((row) => {
-          map[row.date] = row.is_completed;
+        data.forEach((row) => {
+          map[row.date] = true;
         });
         setCompletions(map);
       }
@@ -64,27 +59,18 @@ export default function CheckInCalendar({ streak, restCredits, onClose }: CheckI
 
   const handleMakeUp = async (date: string) => {
     if (!user || restCredits <= 0) return;
-    const { data: existing } = await supabase
-      .from('daily_task_completions')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('date', date)
-      .maybeSingle();
 
-    if (existing) {
-      await supabase
-        .from('daily_task_completions')
-        .update({ is_completed: true, updated_at: new Date().toISOString() })
-        .eq('id', existing.id);
-    } else {
-      await supabase.from('daily_task_completions').insert({
-        user_id: user.id,
-        date,
-        minutes_completed: 0,
-        target_minutes: 0,
-        is_completed: true,
-      });
-    }
+    // Insert or update check-in record
+    await supabase
+      .from('daily_check_ins')
+      .upsert(
+        {
+          user_id: user.id,
+          date,
+          completed_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,date' }
+      );
 
     await supabase
       .from('user_profiles')

@@ -348,12 +348,38 @@ export default function PomodoroModal({
             .gte('completed_at', dayStart)
             .lte('completed_at', dayEnd);
 
+          // Fetch task relationships to include time from linked one-time tasks
+          const { data: relationships } = await supabase
+            .from('task_relationships')
+            .select('onetime_task_id, daily_task_id')
+            .eq('user_id', user.id);
+
+          // Build a map: daily_task_id -> [onetime_task_ids]
+          const dailyToOnetimeMap: Record<string, string[]> = {};
+          (relationships || []).forEach((rel) => {
+            if (!dailyToOnetimeMap[rel.daily_task_id]) {
+              dailyToOnetimeMap[rel.daily_task_id] = [];
+            }
+            dailyToOnetimeMap[rel.daily_task_id].push(rel.onetime_task_id);
+          });
+
           // Calculate minutes per task
           const taskMinutes: Record<string, number> = {};
           (todayPomodoros || []).forEach((p) => {
             if (p.task_id) {
               taskMinutes[p.task_id] = (taskMinutes[p.task_id] || 0) + (p.duration_minutes || 0);
             }
+          });
+
+          // For each daily task, add time from linked one-time tasks
+          Object.keys(dailyToOnetimeMap).forEach((dailyTaskId) => {
+            const linkedOnetimeIds = dailyToOnetimeMap[dailyTaskId];
+            linkedOnetimeIds.forEach((onetimeId) => {
+              const onetimeMinutes = taskMinutes[onetimeId] || 0;
+              if (onetimeMinutes > 0) {
+                taskMinutes[dailyTaskId] = (taskMinutes[dailyTaskId] || 0) + onetimeMinutes;
+              }
+            });
           });
 
           // Check if all daily tasks reached their targets
