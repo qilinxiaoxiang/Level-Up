@@ -86,6 +86,30 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_check_ins: {
+        Row: {
+          completed_at: string
+          created_at: string | null
+          date: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at: string
+          created_at?: string | null
+          date: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          created_at?: string | null
+          date?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_task_completions: {
         Row: {
           created_at: string | null
@@ -487,11 +511,9 @@ export type Database = {
           created_at: string | null
           current_hp: number | null
           current_streak: number | null
-          current_xp: number | null
           daily_reset_time: string | null
           discipline: number | null
           focus: number | null
-          gold: number | null
           id: string
           intelligence: number | null
           last_streak_date: string | null
@@ -502,7 +524,6 @@ export type Database = {
           rest_credits: number | null
           strength: number | null
           total_pomodoros: number | null
-          total_xp: number | null
           timezone_name: string | null
           updated_at: string | null
           username: string | null
@@ -511,11 +532,9 @@ export type Database = {
           created_at?: string | null
           current_hp?: number | null
           current_streak?: number | null
-          current_xp?: number | null
           daily_reset_time?: string | null
           discipline?: number | null
           focus?: number | null
-          gold?: number | null
           id: string
           intelligence?: number | null
           last_streak_date?: string | null
@@ -526,7 +545,6 @@ export type Database = {
           rest_credits?: number | null
           strength?: number | null
           total_pomodoros?: number | null
-          total_xp?: number | null
           timezone_name?: string | null
           updated_at?: string | null
           username?: string | null
@@ -535,11 +553,9 @@ export type Database = {
           created_at?: string | null
           current_hp?: number | null
           current_streak?: number | null
-          current_xp?: number | null
           daily_reset_time?: string | null
           discipline?: number | null
           focus?: number | null
-          gold?: number | null
           id?: string
           intelligence?: number | null
           last_streak_date?: string | null
@@ -550,7 +566,6 @@ export type Database = {
           rest_credits?: number | null
           strength?: number | null
           total_pomodoros?: number | null
-          total_xp?: number | null
           timezone_name?: string | null
           updated_at?: string | null
           username?: string | null

@@ -49,18 +49,10 @@ export default function Dashboard() {
         {/* Character Stats Card */}
         <div className="bg-slate-800 rounded-lg p-6 border border-purple-500/20 shadow-lg mb-8">
           <h2 className="text-2xl font-bold text-white mb-4">Character Stats</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="bg-slate-900 p-4 rounded-lg">
               <p className="text-gray-400 text-sm">Level</p>
               <p className="text-3xl font-bold text-yellow-400">{profile?.level || 1}</p>
-            </div>
-            <div className="bg-slate-900 p-4 rounded-lg">
-              <p className="text-gray-400 text-sm">XP</p>
-              <p className="text-3xl font-bold text-blue-400">{profile?.current_xp || 0}</p>
-            </div>
-            <div className="bg-slate-900 p-4 rounded-lg">
-              <p className="text-gray-400 text-sm">Gold</p>
-              <p className="text-3xl font-bold text-yellow-300">{profile?.gold || 0}</p>
             </div>
             <div className="bg-slate-900 p-4 rounded-lg">
               <p className="text-gray-400 text-sm">HP</p>
@@ -81,22 +73,6 @@ export default function Dashboard() {
                 className="bg-gradient-to-r from-red-600 to-red-400 h-3 rounded-full transition-all"
                 style={{
                   width: `${((profile?.current_hp || 100) / (profile?.max_hp || 100)) * 100}%`,
-                }}
-              ></div>
-            </div>
-          </div>
-
-          {/* XP Bar */}
-          <div className="mt-4">
-            <div className="flex justify-between text-sm text-gray-400 mb-1">
-              <span>Experience</span>
-              <span>{profile?.current_xp || 0}/{(profile?.level || 1) * 100}</span>
-            </div>
-            <div className="w-full bg-slate-900 rounded-full h-3">
-              <div
-                className="bg-gradient-to-r from-blue-600 to-cyan-400 h-3 rounded-full transition-all"
-                style={{
-                  width: `${((profile?.current_xp || 0) / ((profile?.level || 1) * 100)) * 100}%`,
                 }}
               ></div>
             </div>
