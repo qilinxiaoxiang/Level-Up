@@ -22,6 +22,7 @@ interface PomodoroModalProps {
   ) => Promise<void>;
   onDailyProgressUpdate?: (taskId: string, minutes: number) => void;
   onTimeSummaryUpdate?: (minutes: number, completedAt: Date) => void;
+  todayMinutes?: number;
 }
 
 const DURATION_OPTIONS = [25, 45, 60];
@@ -47,10 +48,39 @@ export default function PomodoroModal({
   onTaskUpdate,
   onDailyProgressUpdate,
   onTimeSummaryUpdate,
+  todayMinutes,
 }: PomodoroModalProps) {
   const { user, fetchProfile } = useUserStore();
-  const [duration, setDuration] = useState(60);
-  const [customInput, setCustomInput] = useState('60');
+
+  // Calculate smart default duration based on remaining time
+  const calculateDefaultDuration = () => {
+    let remainingMinutes = 60; // Default
+
+    if (task.task_type === 'daily') {
+      // For daily tasks: target - today's progress
+      const target = task.target_duration_minutes || 0;
+      const completed = todayMinutes || 0;
+      remainingMinutes = Math.max(target - completed, 0);
+    } else if (task.task_type === 'onetime') {
+      // For one-time tasks: estimated - completed
+      const estimated = task.estimated_minutes || (task.estimated_pomodoros ? task.estimated_pomodoros * 25 : 0);
+      const completed = task.completed_minutes || 0;
+      remainingMinutes = Math.max(estimated - completed, 0);
+    }
+
+    // If remaining > 60, use 60; otherwise use remaining time (min 5)
+    if (remainingMinutes > 60) {
+      return 60;
+    } else if (remainingMinutes > 0) {
+      return Math.max(Math.round(remainingMinutes), 5);
+    } else {
+      return 25; // Default to 25 if no target set or already completed
+    }
+  };
+
+  const defaultDuration = calculateDefaultDuration();
+  const [duration, setDuration] = useState(defaultDuration);
+  const [customInput, setCustomInput] = useState(String(defaultDuration));
   const [secondsLeft, setSecondsLeft] = useState(duration * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [startTime, setStartTime] = useState<Date | null>(null);
@@ -111,6 +141,20 @@ export default function PomodoroModal({
           setIsRunning(false);
           setIsComplete(true);
           setShowReport(true);
+
+          // Show browser notification
+          if ('Notification' in window && Notification.permission === 'granted') {
+            const notification = new Notification('Pomodoro Complete!', {
+              body: `Great job! You finished your ${duration} minute session for "${task.title}"`,
+              icon: '/favicon.png',
+              tag: 'pomodoro-complete',
+              requireInteraction: true,
+            });
+            notification.onclick = () => {
+              window.focus();
+            };
+          }
+
           return 0;
         }
         return prev - 1;
@@ -118,7 +162,7 @@ export default function PomodoroModal({
     }, 1000);
 
     return () => window.clearInterval(interval);
-  }, [isRunning]);
+  }, [isRunning, duration, task.title]);
 
 
   const handleStart = async () => {

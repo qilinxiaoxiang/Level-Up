@@ -6,6 +6,7 @@ import GoalSetupForm from '../components/goals/GoalSetupForm';
 import TaskForm from '../components/tasks/TaskForm';
 import TaskCard from '../components/tasks/TaskCard';
 import PomodoroModal, { type ActivePomodoro } from '../components/battle/PomodoroModal';
+import ActivePomodoroCard from '../components/battle/ActivePomodoroCard';
 import BurnDownModal from '../components/tasks/BurnDownModal';
 import CheckInCalendar from '../components/calendar/CheckInCalendar';
 import WeeklyHistogramModal from '../components/dashboard/WeeklyHistogramModal';
@@ -69,6 +70,13 @@ export default function Goals() {
   const [timezoneName, setTimezoneName] = useState('Asia/Shanghai');
   const [showWeeklyHistogram, setShowWeeklyHistogram] = useState(false);
   const [showTodayPomodoros, setShowTodayPomodoros] = useState(false);
+
+  // Request notification permission on page load
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
 
   useEffect(() => {
     if (!profile?.daily_reset_time) {
@@ -246,13 +254,8 @@ export default function Goals() {
     fetchTimeSummary();
   }, [user, profile?.daily_reset_time, profile?.timezone_name, profile]);
 
-  useEffect(() => {
-    if (!activeSession) return;
-    const sessionTask = tasks.find((task) => task.id === activeSession.task_id);
-    if (sessionTask) {
-      setActivePomodoroTask(sessionTask);
-    }
-  }, [activeSession, tasks]);
+  // Removed: Don't auto-open pomodoro modal when session exists
+  // Users will click the ActivePomodoroCard to open it
 
   const handleTimeSummaryUpdate = (minutes: number, completedAt: Date) => {
     const completedDate = getLocalDateString(completedAt);
@@ -379,6 +382,20 @@ export default function Goals() {
             </button>
           </div>
         </div>
+
+        {/* Active Pomodoro Card */}
+        {activeSession && tasks.find((t) => t.id === activeSession.task_id) && (
+          <ActivePomodoroCard
+            task={tasks.find((t) => t.id === activeSession.task_id)!}
+            activeSession={activeSession}
+            onClick={() => {
+              const sessionTask = tasks.find((t) => t.id === activeSession.task_id);
+              if (sessionTask) {
+                setActivePomodoroTask(sessionTask);
+              }
+            }}
+          />
+        )}
 
         {/* Compressed Goal Cards */}
         <section className="space-y-3">
@@ -540,13 +557,9 @@ export default function Goals() {
                       onToggleActive={toggleTaskActive}
                       onStartPomodoro={(selectedTask) => {
                         if (activeSession) {
-                          const sessionTask = tasks.find(
-                            (item) => item.id === activeSession.task_id
-                          );
-                          if (sessionTask) {
-                            setActivePomodoroTask(sessionTask);
-                            return;
-                          }
+                          // Don't auto-open modal if there's already an active session
+                          // User can click the ActivePomodoroCard to open it
+                          return;
                         }
                         setActivePomodoroTask(selectedTask);
                       }}
@@ -578,13 +591,9 @@ export default function Goals() {
                       onToggleActive={toggleTaskActive}
                       onStartPomodoro={(selectedTask) => {
                         if (activeSession) {
-                          const sessionTask = tasks.find(
-                            (item) => item.id === activeSession.task_id
-                          );
-                          if (sessionTask) {
-                            setActivePomodoroTask(sessionTask);
-                            return;
-                          }
+                          // Don't auto-open modal if there's already an active session
+                          // User can click the ActivePomodoroCard to open it
+                          return;
                         }
                         setActivePomodoroTask(selectedTask);
                       }}
@@ -671,6 +680,7 @@ export default function Goals() {
             }));
           }}
           onTimeSummaryUpdate={handleTimeSummaryUpdate}
+          todayMinutes={dailyProgress[activePomodoroTask.id]}
         />
       )}
 
