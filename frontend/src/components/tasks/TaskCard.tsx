@@ -170,14 +170,14 @@ export default function TaskCard({
       {isGolden && (
         <>
           {/* Top bright highlight */}
-          <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+          <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-transparent via-white/60 to-transparent pointer-events-none" />
           {/* Diagonal shine streak */}
           <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
             <div className="absolute top-0 -left-1/4 w-1/2 h-full bg-gradient-to-br from-white/40 via-amber-100/30 to-transparent transform -skew-x-12" />
           </div>
           {/* Multiple corner glows */}
-          <div className="absolute top-2 right-2 w-12 h-12 bg-white/30 rounded-full blur-xl" />
-          <div className="absolute bottom-2 left-2 w-10 h-10 bg-amber-200/40 rounded-full blur-lg" />
+          <div className="absolute top-2 right-2 w-12 h-12 bg-white/30 rounded-full blur-xl pointer-events-none" />
+          <div className="absolute bottom-2 left-2 w-10 h-10 bg-amber-200/40 rounded-full blur-lg pointer-events-none" />
         </>
       )}
       <div className="flex items-start justify-between gap-4">
@@ -259,6 +259,11 @@ export default function TaskCard({
 
       {isEditing && (
         <>
+          {task.is_completed && (
+            <div className="bg-amber-900/20 border border-amber-500/30 rounded-lg p-2 text-xs text-amber-300">
+              ✓ Note: This task is marked as completed. Editing won't change its completion status.
+            </div>
+          )}
           <textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
