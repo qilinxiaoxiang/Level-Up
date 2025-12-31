@@ -60,6 +60,8 @@ export type Database = {
           ends_at: string
           id: string
           is_active: boolean | null
+          is_paused: boolean | null
+          paused_seconds_remaining: number | null
           started_at: string
           task_id: string | null
           user_id: string | null
@@ -70,6 +72,8 @@ export type Database = {
           ends_at: string
           id?: string
           is_active?: boolean | null
+          is_paused?: boolean | null
+          paused_seconds_remaining?: number | null
           started_at: string
           task_id?: string | null
           user_id?: string | null
@@ -80,6 +84,8 @@ export type Database = {
           ends_at?: string
           id?: string
           is_active?: boolean | null
+          is_paused?: boolean | null
+          paused_seconds_remaining?: number | null
           started_at?: string
           task_id?: string | null
           user_id?: string | null
