@@ -34,6 +34,8 @@ export interface ActivePomodoro {
   started_at: string;
   ends_at: string;
   is_active: boolean;
+  is_paused?: boolean;
+  paused_seconds_remaining?: number;
 }
 
 export default function PomodoroModal({
@@ -71,18 +73,31 @@ export default function PomodoroModal({
 
     const sessionDuration = activeSession.duration_minutes;
     const sessionStart = new Date(activeSession.started_at);
-    const sessionEnd = new Date(activeSession.ends_at);
-    const remainingSeconds = Math.max(
-      Math.round((sessionEnd.getTime() - Date.now()) / 1000),
-      0
-    );
 
-    setDuration(sessionDuration);
-    setCustomInput(String(sessionDuration));
-    setStartTime(sessionStart);
-    setSecondsLeft(remainingSeconds);
-    setIsRunning(remainingSeconds > 0);
-    setLocalSession(activeSession);
+    // Check if session is paused
+    if (activeSession.is_paused && activeSession.paused_seconds_remaining !== undefined) {
+      // Use the paused seconds remaining
+      setDuration(sessionDuration);
+      setCustomInput(String(sessionDuration));
+      setStartTime(sessionStart);
+      setSecondsLeft(activeSession.paused_seconds_remaining);
+      setIsRunning(false);
+      setLocalSession(activeSession);
+    } else {
+      // Calculate remaining time from ends_at
+      const sessionEnd = new Date(activeSession.ends_at);
+      const remainingSeconds = Math.max(
+        Math.round((sessionEnd.getTime() - Date.now()) / 1000),
+        0
+      );
+
+      setDuration(sessionDuration);
+      setCustomInput(String(sessionDuration));
+      setStartTime(sessionStart);
+      setSecondsLeft(remainingSeconds);
+      setIsRunning(remainingSeconds > 0);
+      setLocalSession(activeSession);
+    }
   }, [activeSession]);
 
   useEffect(() => {
@@ -123,6 +138,7 @@ export default function PomodoroModal({
           started_at: startedAt.toISOString(),
           ends_at: endsAt.toISOString(),
           is_active: true,
+          is_paused: false,
         })
         .select()
         .single();
@@ -152,6 +168,97 @@ export default function PomodoroModal({
       setIsRunning(true);
     } catch (err) {
       setError((err as Error).message || 'Failed to start pomodoro.');
+    }
+  };
+
+  const handlePause = async () => {
+    setError(null);
+    const sessionId = localSession?.id ?? activeSession?.id;
+    if (!sessionId) return;
+
+    try {
+      // Update database with paused state
+      const { error } = await supabase
+        .from('active_pomodoros')
+        .update({
+          is_paused: true,
+          paused_seconds_remaining: secondsLeft,
+        })
+        .eq('id', sessionId);
+
+      if (error) throw error;
+
+      // Update local state
+      setIsRunning(false);
+      const updatedSession = {
+        ...(localSession ?? activeSession!),
+        is_paused: true,
+        paused_seconds_remaining: secondsLeft,
+      };
+      setLocalSession(updatedSession);
+      onSessionStart(updatedSession);
+    } catch (err) {
+      setError((err as Error).message || 'Failed to pause pomodoro.');
+    }
+  };
+
+  const handleResume = async () => {
+    setError(null);
+    const sessionId = localSession?.id ?? activeSession?.id;
+    if (!sessionId) return;
+
+    try {
+      // Calculate new end time based on remaining seconds
+      const newEndsAt = new Date(Date.now() + secondsLeft * 1000);
+
+      // Update database with resumed state
+      const { error } = await supabase
+        .from('active_pomodoros')
+        .update({
+          is_paused: false,
+          paused_seconds_remaining: null,
+          ends_at: newEndsAt.toISOString(),
+        })
+        .eq('id', sessionId);
+
+      if (error) throw error;
+
+      // Update local state
+      setIsRunning(true);
+      const updatedSession = {
+        ...(localSession ?? activeSession!),
+        is_paused: false,
+        paused_seconds_remaining: undefined,
+        ends_at: newEndsAt.toISOString(),
+      };
+      setLocalSession(updatedSession);
+      onSessionStart(updatedSession);
+    } catch (err) {
+      setError((err as Error).message || 'Failed to resume pomodoro.');
+    }
+  };
+
+  const handleAbort = async () => {
+    setError(null);
+    const sessionId = localSession?.id ?? activeSession?.id;
+    if (!sessionId) return;
+
+    try {
+      // Delete the active session without saving any progress
+      const { error } = await supabase
+        .from('active_pomodoros')
+        .delete()
+        .eq('id', sessionId);
+
+      if (error) throw error;
+
+      // Clean up local state
+      setLocalSession(null);
+      setIsRunning(false);
+      onSessionEnd();
+      onClose();
+    } catch (err) {
+      setError((err as Error).message || 'Failed to abort pomodoro.');
     }
   };
 
@@ -451,9 +558,6 @@ export default function PomodoroModal({
         <div className="text-center space-y-2">
           <p className="text-sm text-gray-400">Focus timer</p>
           <div className="text-5xl font-bold text-white">{formattedTime}</div>
-          {!isRunning && !isComplete && (
-            <p className="text-xs text-gray-500">Select a duration and begin.</p>
-          )}
         </div>
 
         {!isRunning && !isComplete && !activeSession && (
@@ -552,45 +656,45 @@ export default function PomodoroModal({
           </div>
         )}
 
-        <div className="flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="flex-1 px-4 py-2 bg-slate-800 text-gray-300 rounded-lg font-semibold hover:bg-slate-700 transition-colors"
-          >
-            Close
-          </button>
-          {showReport ? null : !isRunning && !isComplete && !activeSession ? (
+        {!showReport && (isRunning || (!isRunning && (localSession || activeSession))) && (
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={handleStart}
-              className="flex-1 px-4 py-2 bg-emerald-500 text-white rounded-lg font-semibold hover:bg-emerald-400 transition-colors"
+              onClick={isRunning ? handlePause : handleResume}
+              className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-500 transition-colors"
             >
-              Start
+              {isRunning ? 'Pause' : 'Resume'}
             </button>
-          ) : (
-            <div className="flex-1 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIsRunning((prev) => !prev)}
-                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-500 transition-colors"
-              >
-                {isRunning ? 'Pause' : 'Resume'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSecondsLeft(0);
-                  setIsComplete(true);
-                  setShowReport(true);
-                }}
-                className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-500 transition-colors"
-              >
-                Complete
-              </button>
-            </div>
-          )}
-        </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSecondsLeft(0);
+                setIsComplete(true);
+                setShowReport(true);
+              }}
+              className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-500 transition-colors"
+            >
+              Complete
+            </button>
+            <button
+              type="button"
+              onClick={handleAbort}
+              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-500 transition-colors"
+            >
+              Abort
+            </button>
+          </div>
+        )}
+
+        {!showReport && !isRunning && !isComplete && !activeSession && !localSession && (
+          <button
+            type="button"
+            onClick={handleStart}
+            className="w-full px-4 py-2 bg-emerald-500 text-white rounded-lg font-semibold hover:bg-emerald-400 transition-colors"
+          >
+            Start
+          </button>
+        )}
       </div>
     </div>
   );

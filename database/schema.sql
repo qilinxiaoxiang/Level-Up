@@ -191,6 +191,8 @@ CREATE TABLE active_pomodoros (
   started_at TIMESTAMPTZ NOT NULL,
   ends_at TIMESTAMPTZ NOT NULL,
   is_active BOOLEAN DEFAULT true,
+  is_paused BOOLEAN DEFAULT false,
+  paused_seconds_remaining INTEGER,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
