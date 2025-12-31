@@ -91,6 +91,7 @@ export default function PomodoroModal({
   const [showReport, setShowReport] = useState(false);
   const [focusRating, setFocusRating] = useState(3);
   const [note, setNote] = useState('');
+  const [manualComplete, setManualComplete] = useState(false);
 
   const formattedTime = useMemo(() => {
     const minutes = Math.floor(secondsLeft / 60);
@@ -100,6 +101,8 @@ export default function PomodoroModal({
 
   useEffect(() => {
     if (!activeSession) return;
+    // Don't reset timer if user manually completed or is viewing the report
+    if (isComplete || showReport) return;
 
     const sessionDuration = activeSession.duration_minutes;
     const sessionStart = new Date(activeSession.started_at);
@@ -128,7 +131,7 @@ export default function PomodoroModal({
       setIsRunning(remainingSeconds > 0);
       setLocalSession(activeSession);
     }
-  }, [activeSession]);
+  }, [activeSession, isComplete, showReport]);
 
   useEffect(() => {
     if (!isRunning) return;
@@ -142,8 +145,8 @@ export default function PomodoroModal({
           setIsComplete(true);
           setShowReport(true);
 
-          // Show browser notification
-          if ('Notification' in window && Notification.permission === 'granted') {
+          // Show browser notification only for natural completion (not manual)
+          if (!manualComplete && 'Notification' in window && Notification.permission === 'granted') {
             const notification = new Notification('Pomodoro Complete!', {
               body: `Great job! You finished your ${duration} minute session for "${task.title}"`,
               icon: '/favicon.png',
@@ -162,7 +165,7 @@ export default function PomodoroModal({
     }, 1000);
 
     return () => window.clearInterval(interval);
-  }, [isRunning, duration, task.title]);
+  }, [isRunning, duration, task.title, manualComplete]);
 
 
   const handleStart = async () => {
@@ -712,6 +715,7 @@ export default function PomodoroModal({
             <button
               type="button"
               onClick={() => {
+                setManualComplete(true);
                 setSecondsLeft(0);
                 setIsComplete(true);
                 setShowReport(true);
