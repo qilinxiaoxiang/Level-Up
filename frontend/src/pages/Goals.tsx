@@ -355,7 +355,7 @@ export default function Goals() {
             <button
               type="button"
               onClick={() => setShowTodayPomodoros(true)}
-              className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-blue-500/20 hover:border-blue-500/40 transition-all text-left"
+              className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-blue-500/20 hover:border-blue-500/40 active:border-blue-500/60 transition-all text-left cursor-pointer touch-manipulation"
             >
               <p className="text-xs text-gray-400">Today</p>
               <p className="text-lg font-bold text-blue-400">{formatTime(todayMinutes)}</p>
@@ -363,7 +363,7 @@ export default function Goals() {
             <button
               type="button"
               onClick={() => setShowWeeklyHistogram(true)}
-              className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-purple-500/20 hover:border-purple-500/50 transition-all text-left"
+              className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-purple-500/20 hover:border-purple-500/50 active:border-purple-500/70 transition-all text-left cursor-pointer touch-manipulation"
             >
               <p className="text-xs text-gray-400">Week</p>
               <p className="text-lg font-bold text-purple-400">{formatTime(weekMinutes)}</p>
@@ -375,7 +375,7 @@ export default function Goals() {
             <button
               type="button"
               onClick={() => setShowCalendar(true)}
-              className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-orange-500/20 hover:border-orange-500/40 transition-all text-left"
+              className="bg-slate-800/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-orange-500/20 hover:border-orange-500/40 active:border-orange-500/60 transition-all text-left cursor-pointer touch-manipulation"
             >
               <p className="text-xs text-gray-400">Streak</p>
               <p className="text-lg font-bold text-orange-400">{profile?.current_streak ?? 0} 🔥</p>
