@@ -11,6 +11,9 @@ interface TodayPomodorosModalProps {
   userId: string;
   timezone: string;
   specificDate?: string; // Optional: YYYY-MM-DD format. If not provided, uses today
+  isCompleted?: boolean; // Whether the day has a check-in
+  restCredits?: number; // Available rest credits
+  onMakeUp?: () => void; // Callback when user makes up the day
 }
 
 interface PomodoroWithDetails {
@@ -47,10 +50,20 @@ const convertToDetailedPomodoro = (pomodoro: any, primaryTask?: Task, linkedTask
   };
 };
 
-const TodayPomodorosModal = ({ isOpen, onClose, userId, timezone, specificDate }: TodayPomodorosModalProps) => {
+const TodayPomodorosModal = ({
+  isOpen,
+  onClose,
+  userId,
+  timezone,
+  specificDate,
+  isCompleted = true,
+  restCredits = 0,
+  onMakeUp
+}: TodayPomodorosModalProps) => {
   const [pomodoros, setPomodoros] = useState<PomodoroWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showMakeUpConfirm, setShowMakeUpConfirm] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -258,7 +271,17 @@ const TodayPomodorosModal = ({ isOpen, onClose, userId, timezone, specificDate }
       <div className="w-full max-w-lg bg-slate-900 rounded-2xl border border-purple-500/30 shadow-2xl p-6 max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-white">{getModalTitle()}</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold text-white">{getModalTitle()}</h2>
+            {!isCompleted && restCredits > 0 && onMakeUp && specificDate && (
+              <button
+                onClick={() => setShowMakeUpConfirm(true)}
+                className="px-3 py-1.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-sm font-semibold rounded-lg hover:bg-emerald-500/30 transition-colors"
+              >
+                Make Up
+              </button>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-white transition-colors"
@@ -368,6 +391,39 @@ const TodayPomodorosModal = ({ isOpen, onClose, userId, timezone, specificDate }
           ))}
         </div>
       </div>
+
+      {/* Make Up Confirmation Dialog */}
+      {showMakeUpConfirm && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-2xl">
+          <div className="w-full max-w-sm bg-slate-800 rounded-xl border border-purple-500/40 shadow-2xl p-6 space-y-4 mx-4">
+            <h4 className="text-lg font-semibold text-white">Make Up This Day</h4>
+            <p className="text-sm text-gray-300">
+              Use 1 rest credit to mark {specificDate && format(new Date(specificDate + 'T00:00:00'), 'MMM d, yyyy')} as completed?
+            </p>
+            <p className="text-xs text-gray-500">Rest credits available: {restCredits}</p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowMakeUpConfirm(false)}
+                className="flex-1 px-4 py-2 bg-slate-700 text-gray-300 rounded-lg text-sm font-semibold hover:bg-slate-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMakeUpConfirm(false);
+                  onMakeUp?.();
+                  onClose();
+                }}
+                className="flex-1 px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-semibold hover:bg-emerald-400 transition-colors"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

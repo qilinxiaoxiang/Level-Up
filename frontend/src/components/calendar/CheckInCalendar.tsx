@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useUserStore } from '../../store/useUserStore';
-import MakeUpDialog from './MakeUpDialog';
 import TodayPomodorosModal from '../dashboard/TodayPomodorosModal';
 import { getLocalDateString } from '../../utils/dateUtils';
 
@@ -16,10 +15,10 @@ export default function CheckInCalendar({ streak, restCredits, onClose }: CheckI
   const { user, profile, fetchProfile } = useUserStore();
   const [completions, setCompletions] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [viewingDate, setViewingDate] = useState(new Date());
   const [showPomodorosModal, setShowPomodorosModal] = useState(false);
   const [selectedDateForPomodoros, setSelectedDateForPomodoros] = useState<string | null>(null);
+  const [selectedDateCompleted, setSelectedDateCompleted] = useState(false);
 
   const today = new Date();
   const year = viewingDate.getFullYear();
@@ -85,7 +84,6 @@ export default function CheckInCalendar({ streak, restCredits, onClose }: CheckI
 
     setCompletions((prev) => ({ ...prev, [date]: true }));
     fetchProfile();
-    setSelectedDate(null);
   };
 
   const goToPreviousMonth = () => {
@@ -96,9 +94,10 @@ export default function CheckInCalendar({ streak, restCredits, onClose }: CheckI
     setViewingDate(new Date(year, monthIndex + 1, 1));
   };
 
-  const handleDateClick = (date: Date) => {
+  const handleDateClick = (date: Date, isCompleted: boolean) => {
     const dateStr = getLocalDateString(date);
     setSelectedDateForPomodoros(dateStr);
+    setSelectedDateCompleted(isCompleted);
     setShowPomodorosModal(true);
   };
 
@@ -165,10 +164,8 @@ export default function CheckInCalendar({ streak, restCredits, onClose }: CheckI
                   type="button"
                   disabled={isFuture}
                   onClick={() => {
-                    if (isMissed) {
-                      setSelectedDate(dateKey);
-                    } else if (!isFuture) {
-                      handleDateClick(date);
+                    if (!isFuture) {
+                      handleDateClick(date, isCompleted);
                     }
                   }}
                   className={`h-8 rounded-lg border text-xs font-semibold transition-colors ${
@@ -198,15 +195,6 @@ export default function CheckInCalendar({ streak, restCredits, onClose }: CheckI
         </div>
       </div>
 
-      {selectedDate && (
-        <MakeUpDialog
-          date={selectedDate}
-          restCredits={restCredits}
-          onClose={() => setSelectedDate(null)}
-          onConfirm={() => handleMakeUp(selectedDate)}
-        />
-      )}
-
       {showPomodorosModal && selectedDateForPomodoros && user && (
         <TodayPomodorosModal
           isOpen={showPomodorosModal}
@@ -217,6 +205,9 @@ export default function CheckInCalendar({ streak, restCredits, onClose }: CheckI
           userId={user.id}
           timezone={profile?.timezone_name || 'UTC'}
           specificDate={selectedDateForPomodoros}
+          isCompleted={selectedDateCompleted}
+          restCredits={restCredits}
+          onMakeUp={() => handleMakeUp(selectedDateForPomodoros)}
         />
       )}
     </div>
