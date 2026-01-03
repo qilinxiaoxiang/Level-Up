@@ -281,37 +281,37 @@ const TodayPomodorosModal = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
       <div className="w-full max-w-lg bg-slate-900 rounded-2xl border border-purple-500/30 shadow-2xl p-6 max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold text-white">{getModalTitle()}</h2>
-            {/* Debug info - remove after testing */}
-            {import.meta.env.DEV && (
-              <span className="text-xs text-gray-500">
-                [isCompleted: {String(isCompleted)}, isToday: {String(isToday())}, hasCallback: {String(!!onMakeUp)}]
-              </span>
-            )}
-            {!isCompleted && !isToday() && onMakeUp && (
-              <button
-                onClick={() => restCredits > 0 && setShowMakeUpConfirm(true)}
-                disabled={restCredits <= 0}
-                title={restCredits <= 0 ? 'No rest credits available' : 'Use 1 rest credit to mark this day as complete'}
-                className={`px-3 py-1.5 border text-sm font-semibold rounded-lg transition-colors ${
-                  restCredits > 0
-                    ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30 cursor-pointer'
-                    : 'bg-slate-700/20 border-slate-600/40 text-slate-500 cursor-not-allowed opacity-60'
-                }`}
-              >
-                Make Up
-              </button>
-            )}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-bold text-white">{getModalTitle()}</h2>
+              {!isCompleted && !isToday() && onMakeUp && (
+                <button
+                  onClick={() => restCredits > 0 && setShowMakeUpConfirm(true)}
+                  disabled={restCredits <= 0}
+                  title={restCredits <= 0 ? 'No rest credits available' : 'Use 1 rest credit to mark this day as complete'}
+                  className={`px-3 py-1.5 border text-sm font-semibold rounded-lg transition-colors ${
+                    restCredits > 0
+                      ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30 cursor-pointer'
+                      : 'bg-slate-700/20 border-slate-600/40 text-slate-500 cursor-not-allowed opacity-60'
+                  }`}
+                >
+                  Make Up
+                </button>
+              )}
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-white transition-colors"
+              aria-label="Close"
+            >
+              <X size={24} />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
-            aria-label="Close"
-          >
-            <X size={24} />
-          </button>
+          {/* Debug info - remove after testing */}
+          <div className="text-xs text-yellow-400 bg-slate-800 px-2 py-1 rounded inline-block">
+            DEBUG: isCompleted={String(isCompleted)} | isToday={String(isToday())} | hasCallback={String(!!onMakeUp)} | credits={restCredits}
+          </div>
         </div>
 
         {/* Summary Stats */}
