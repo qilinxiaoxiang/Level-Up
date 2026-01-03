@@ -56,7 +56,7 @@ const TodayPomodorosModal = ({
   userId,
   timezone,
   specificDate,
-  isCompleted = true,
+  isCompleted = false,
   restCredits = 0,
   onMakeUp
 }: TodayPomodorosModalProps) => {

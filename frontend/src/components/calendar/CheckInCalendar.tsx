@@ -155,7 +155,7 @@ export default function CheckInCalendar({ streak, restCredits, onClose }: CheckI
             {days.map((date) => {
               const dateKey = getLocalDateString(date);
               const isFuture = date > today;
-              const isCompleted = completions[dateKey];
+              const isCompleted = !!completions[dateKey]; // Convert to explicit boolean
               const isMissed = !isFuture && !isCompleted;
 
               return (
