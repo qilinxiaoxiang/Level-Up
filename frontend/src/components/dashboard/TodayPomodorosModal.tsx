@@ -10,6 +10,7 @@ interface TodayPomodorosModalProps {
   onClose: () => void;
   userId: string;
   timezone: string;
+  specificDate?: string; // Optional: YYYY-MM-DD format. If not provided, uses today
 }
 
 interface PomodoroWithDetails extends Pomodoro {
@@ -17,7 +18,7 @@ interface PomodoroWithDetails extends Pomodoro {
   linkedTasks: Task[];
 }
 
-const TodayPomodorosModal = ({ isOpen, onClose, userId, timezone }: TodayPomodorosModalProps) => {
+const TodayPomodorosModal = ({ isOpen, onClose, userId, timezone, specificDate }: TodayPomodorosModalProps) => {
   const [pomodoros, setPomodoros] = useState<PomodoroWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,20 +27,35 @@ const TodayPomodorosModal = ({ isOpen, onClose, userId, timezone }: TodayPomodor
     if (isOpen) {
       fetchTodayPomodoros();
     }
-  }, [isOpen, userId]);
+  }, [isOpen, userId, specificDate]);
 
   const fetchTodayPomodoros = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // 1. Fetch today's pomodoros
+      // Determine date range
+      let dayStart: string;
+      let dayEnd: string;
+
+      if (specificDate) {
+        // Use specific date
+        const targetDate = new Date(specificDate + 'T00:00:00');
+        dayStart = new Date(targetDate.setHours(0, 0, 0, 0)).toISOString();
+        dayEnd = new Date(targetDate.setHours(23, 59, 59, 999)).toISOString();
+      } else {
+        // Use today
+        dayStart = getStartOfDayUTC();
+        dayEnd = getEndOfDayUTC();
+      }
+
+      // 1. Fetch pomodoros for the date range
       const { data: pomodorosData, error: pomodorosError } = await supabase
         .from('pomodoros')
         .select('id, task_id, duration_minutes, actual_duration_minutes, overtime_minutes, completion_type, pause_periods, started_at, completed_at, focus_rating, accomplishment_note')
         .eq('user_id', userId)
-        .gte('completed_at', getStartOfDayUTC())
-        .lte('completed_at', getEndOfDayUTC())
+        .gte('completed_at', dayStart)
+        .lte('completed_at', dayEnd)
         .not('completed_at', 'is', null)
         .order('started_at', { ascending: true });
 
@@ -202,6 +218,14 @@ const TodayPomodorosModal = ({ isOpen, onClose, userId, timezone }: TodayPomodor
   const totalMinutes = pomodoros.reduce((sum, p) => sum + (p.actual_duration_minutes || p.duration_minutes || 0), 0);
   const totalCount = pomodoros.length;
 
+  const getModalTitle = () => {
+    if (specificDate) {
+      const date = new Date(specificDate + 'T00:00:00');
+      return format(date, 'MMM d, yyyy') + ' Pomodoros';
+    }
+    return "Today's Pomodoros";
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -209,7 +233,7 @@ const TodayPomodorosModal = ({ isOpen, onClose, userId, timezone }: TodayPomodor
       <div className="w-full max-w-lg bg-slate-900 rounded-2xl border border-purple-500/30 shadow-2xl p-6 max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-white">Today's Pomodoros</h2>
+          <h2 className="text-xl font-bold text-white">{getModalTitle()}</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-white transition-colors"
