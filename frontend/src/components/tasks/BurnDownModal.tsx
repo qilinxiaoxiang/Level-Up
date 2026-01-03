@@ -38,8 +38,9 @@ export default function BurnDownModal({ task, onClose }: BurnDownModalProps) {
       if (!error && data) {
         const map: Record<string, number> = {};
         data.forEach((row) => {
-          const date = row.completed_at?.slice(0, 10) ?? '';
-          if (!date) return;
+          if (!row.completed_at) return;
+          // Convert UTC timestamp to local date string using timezone-aware function
+          const date = getLocalDateString(new Date(row.completed_at));
           map[date] = (map[date] || 0) + (row.duration_minutes || 0);
         });
         setDailyMinutes(map);
