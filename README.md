@@ -27,7 +27,11 @@ A personal productivity application that transforms your daily tasks and goals i
 
 ### Pomodoro System
 - Choose duration: 15, 25, 45, 60 minutes (or custom)
-- Real-time countdown timer
+- Real-time countdown timer with **overtime tracking**
+- **Overtime mode**: Timer continues counting after reaching 0:00
+- **Pause tracking**: Record multiple pause/resume cycles with timestamps
+- **Duration choice**: Choose between original and extended time on completion
+- **Smart appearance**: Orange theme when in overtime mode
 - Focus rating (1-5 stars) after completion
 - Accomplishment logging
 - Real-time time tracking and statistics
@@ -39,7 +43,9 @@ A personal productivity application that transforms your daily tasks and goals i
 - **Real-time status**: Daily task "Done today" status calculated live from pomodoros
 
 ### Check-In Calendar
-- Monthly view of daily completions
+- **Month navigation**: Browse previous and future months
+- **Date-specific pomodoros**: Click any date to view that day's completed pomodoros
+- Monthly view of daily completions with color-coded status
 - Visual streak display
 - Rest credit management
 - Make-up functionality for missed days
@@ -156,11 +162,15 @@ npm run build
 - Goal management (3-tier system)
 - Task CRUD (daily and one-time)
 - Pomodoro timer with focus tracking
+- **Overtime tracking system** (NEW)
+- **Pause period recording** (NEW)
+- **Smart time calculation**: Different logic for natural vs manual completions (NEW)
 - Real-time daily task status calculation
 - Customizable day cut time with timezone support
 - Streak tracking with rest credits
-- Check-in calendar
-- Time statistics (Today, Week, Total)
+- **Check-in calendar with month navigation** (UPDATED)
+- **Date-specific pomodoro viewing** (NEW)
+- Time statistics using actual duration (Today, Week, Total)
 - Burn-down charts
 - Task archiving
 - Mobile-responsive UI
