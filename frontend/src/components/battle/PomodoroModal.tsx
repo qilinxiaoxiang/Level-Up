@@ -173,7 +173,7 @@ export default function PomodoroModal({
         setIsOvertime(true);
       } else {
         setSecondsLeft(remainingSeconds);
-        setOvertimeSeconds(0);
+        setOvertimeSeconds(activeSession.overtime_seconds || 0);
         setIsOvertime(false);
       }
 
@@ -876,27 +876,41 @@ export default function PomodoroModal({
 
         {!showReport && (isRunning || (!isRunning && (localSession || activeSession))) && (
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={isRunning ? handlePause : handleResume}
-              className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-500 transition-colors"
-            >
-              {isRunning ? 'Pause' : 'Resume'}
-            </button>
-            <button
-              type="button"
-              onClick={handleCompleteClick}
-              className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-500 transition-colors"
-            >
-              Complete
-            </button>
-            <button
-              type="button"
-              onClick={handleAbort}
-              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-500 transition-colors"
-            >
-              Abort
-            </button>
+            {isOvertime ? (
+              // In overtime mode: only show Complete button
+              <button
+                type="button"
+                onClick={handleCompleteClick}
+                className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-500 transition-colors"
+              >
+                Complete
+              </button>
+            ) : (
+              // Normal mode: show all three buttons
+              <>
+                <button
+                  type="button"
+                  onClick={isRunning ? handlePause : handleResume}
+                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-500 transition-colors"
+                >
+                  {isRunning ? 'Pause' : 'Resume'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCompleteClick}
+                  className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-500 transition-colors"
+                >
+                  Complete
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAbort}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-500 transition-colors"
+                >
+                  Abort
+                </button>
+              </>
+            )}
           </div>
         )}
 
