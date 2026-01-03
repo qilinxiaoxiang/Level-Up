@@ -13,7 +13,7 @@ interface CheckInCalendarProps {
 }
 
 export default function CheckInCalendar({ streak, restCredits, onClose }: CheckInCalendarProps) {
-  const { user, fetchProfile } = useUserStore();
+  const { user, profile, fetchProfile } = useUserStore();
   const [completions, setCompletions] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -21,6 +21,7 @@ export default function CheckInCalendar({ streak, restCredits, onClose }: CheckI
   const [showPomodorosModal, setShowPomodorosModal] = useState(false);
   const [selectedDateForPomodoros, setSelectedDateForPomodoros] = useState<string | null>(null);
 
+  const today = new Date();
   const year = viewingDate.getFullYear();
   const monthIndex = viewingDate.getMonth();
   const month = viewingDate.toLocaleString('default', { month: 'long' });
@@ -214,7 +215,7 @@ export default function CheckInCalendar({ streak, restCredits, onClose }: CheckI
             setSelectedDateForPomodoros(null);
           }}
           userId={user.id}
-          timezone={user.timezone_name || 'UTC'}
+          timezone={profile?.timezone_name || 'UTC'}
           specificDate={selectedDateForPomodoros}
         />
       )}

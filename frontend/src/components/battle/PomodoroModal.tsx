@@ -27,10 +27,7 @@ interface PomodoroModalProps {
 
 const DURATION_OPTIONS = [25, 45, 60];
 
-export interface PausePeriod {
-  paused_at: string;
-  resumed_at?: string;
-}
+import type { PausePeriod } from '../../types';
 
 export interface ActivePomodoro {
   id: string;
@@ -45,6 +42,14 @@ export interface ActivePomodoro {
   overtime_seconds?: number;
   pause_periods?: PausePeriod[];
 }
+
+// Helper function to convert database result to ActivePomodoro
+const convertToActivePomodoro = (data: any): ActivePomodoro => {
+  return {
+    ...data,
+    pause_periods: Array.isArray(data.pause_periods) ? data.pause_periods : [],
+  };
+};
 
 export default function PomodoroModal({
   task,
@@ -247,14 +252,15 @@ export default function PomodoroModal({
           .maybeSingle();
 
         if (existing) {
-          onSessionStart(existing as ActivePomodoro);
-          setLocalSession(existing as ActivePomodoro);
+          const convertedSession = convertToActivePomodoro(existing);
+          onSessionStart(convertedSession);
+          setLocalSession(convertedSession);
           return;
         }
         throw error;
       }
 
-      const session = data as ActivePomodoro;
+      const session = convertToActivePomodoro(data);
       onSessionStart(session);
       setLocalSession(session);
       setSecondsLeft(duration * 60);
@@ -291,7 +297,7 @@ export default function PomodoroModal({
           is_paused: true,
           paused_seconds_remaining: remainingSeconds,
           overtime_seconds: overtimeSeconds,
-          pause_periods: updatedPausePeriods,
+          pause_periods: updatedPausePeriods as any,
         })
         .eq('id', sessionId);
 
@@ -343,7 +349,7 @@ export default function PomodoroModal({
           paused_seconds_remaining: null,
           ends_at: newEndsAt.toISOString(),
           overtime_seconds: overtimeSeconds,
-          pause_periods: updatedPausePeriods,
+          pause_periods: updatedPausePeriods as any,
         })
         .eq('id', sessionId);
 
@@ -534,7 +540,7 @@ export default function PomodoroModal({
         actual_duration_minutes: actualDurationMinutes,
         overtime_minutes: overtimeMinutes,
         completion_type: completionType,
-        pause_periods: finalPausePeriods,
+        pause_periods: finalPausePeriods as any,
         started_at: startTime.toISOString(),
         completed_at: completedAt.toISOString(),
         enemy_type: task.category || null,

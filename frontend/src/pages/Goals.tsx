@@ -18,6 +18,14 @@ import { useAuth } from '../hooks/useAuth';
 import { getLocalDateString, getLocalWeekStart, getStartOfDayUTC, getEndOfDayUTC } from '../utils/dateUtils';
 import { Clock } from 'lucide-react';
 
+// Helper function to convert database result to ActivePomodoro
+const convertToActivePomodoro = (data: any): ActivePomodoro => {
+  return {
+    ...data,
+    pause_periods: Array.isArray(data.pause_periods) ? data.pause_periods : [],
+  };
+};
+
 const GOAL_CONFIG = {
   '3year': { emoji: '🎯', label: '3-Year Goal', color: 'from-blue-600 to-cyan-600' },
   '1year': { emoji: '📅', label: '1-Year Goal', color: 'from-purple-600 to-pink-600' },
@@ -133,7 +141,7 @@ export default function Goals() {
         }
 
         if (data) {
-          setActiveSession(data as ActivePomodoro);
+          setActiveSession(convertToActivePomodoro(data));
         }
       } catch (err) {
         setPomodoroError((err as Error).message || 'Failed to load active pomodoro.');

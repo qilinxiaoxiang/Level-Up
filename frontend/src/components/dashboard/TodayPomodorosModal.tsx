@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { X, Clock, Star } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getStartOfDayUTC, getEndOfDayUTC } from '../../utils/dateUtils';
-import type { Pomodoro, Task } from '../../types';
+import type { Pomodoro, Task, PausePeriod } from '../../types';
 
 interface TodayPomodorosModalProps {
   isOpen: boolean;
@@ -13,10 +13,39 @@ interface TodayPomodorosModalProps {
   specificDate?: string; // Optional: YYYY-MM-DD format. If not provided, uses today
 }
 
-interface PomodoroWithDetails extends Pomodoro {
+interface PomodoroWithDetails {
+  id: string;
+  task_id: string | null;
+  duration_minutes: number;
+  actual_duration_minutes?: number | null;
+  overtime_minutes?: number | null;
+  completion_type?: string | null;
+  pause_periods?: PausePeriod[] | null;
+  started_at: string;
+  completed_at: string | null;
+  focus_rating: number | null;
+  accomplishment_note: string | null;
   primaryTask?: Task;
   linkedTasks: Task[];
 }
+
+const convertToDetailedPomodoro = (pomodoro: any, primaryTask?: Task, linkedTasks: Task[] = []): PomodoroWithDetails => {
+  return {
+    id: pomodoro.id,
+    task_id: pomodoro.task_id,
+    duration_minutes: pomodoro.duration_minutes,
+    actual_duration_minutes: pomodoro.actual_duration_minutes,
+    overtime_minutes: pomodoro.overtime_minutes,
+    completion_type: pomodoro.completion_type,
+    pause_periods: Array.isArray(pomodoro.pause_periods) ? pomodoro.pause_periods : [],
+    started_at: pomodoro.started_at,
+    completed_at: pomodoro.completed_at,
+    focus_rating: pomodoro.focus_rating,
+    accomplishment_note: pomodoro.accomplishment_note,
+    primaryTask,
+    linkedTasks,
+  };
+};
 
 const TodayPomodorosModal = ({ isOpen, onClose, userId, timezone, specificDate }: TodayPomodorosModalProps) => {
   const [pomodoros, setPomodoros] = useState<PomodoroWithDetails[]>([]);
@@ -135,11 +164,7 @@ const TodayPomodorosModal = ({ isOpen, onClose, userId, timezone, specificDate }
               .filter(task => task && task.task_type === 'daily') as Task[]
           : [];
 
-        return {
-          ...pomodoro,
-          primaryTask,
-          linkedTasks,
-        } as PomodoroWithDetails;
+        return convertToDetailedPomodoro(pomodoro, primaryTask, linkedTasks);
       });
 
       setPomodoros(enrichedPomodoros);

@@ -72,11 +72,20 @@ export interface Task {
   unlocked_by_task_id: string | null;
 }
 
+export interface PausePeriod {
+  paused_at: string;
+  resumed_at?: string;
+}
+
 export interface Pomodoro {
   id: string;
   user_id: string | null;
   task_id: string | null;
   duration_minutes: number;
+  actual_duration_minutes?: number | null;
+  overtime_minutes?: number | null;
+  completion_type?: string | null;
+  pause_periods?: PausePeriod[] | null;
   started_at: string;
   completed_at: string | null;
   enemy_type: string | null;
