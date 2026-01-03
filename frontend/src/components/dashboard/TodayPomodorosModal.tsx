@@ -264,6 +264,17 @@ const TodayPomodorosModal = ({
     return "Today's Pomodoros";
   };
 
+  const isToday = () => {
+    if (!specificDate) return true; // If no specific date, it's today's modal
+    const today = new Date();
+    const selected = new Date(specificDate + 'T00:00:00');
+    return (
+      selected.getFullYear() === today.getFullYear() &&
+      selected.getMonth() === today.getMonth() &&
+      selected.getDate() === today.getDate()
+    );
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -273,10 +284,16 @@ const TodayPomodorosModal = ({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-bold text-white">{getModalTitle()}</h2>
-            {!isCompleted && restCredits > 0 && onMakeUp && specificDate && (
+            {!isCompleted && !isToday() && onMakeUp && (
               <button
-                onClick={() => setShowMakeUpConfirm(true)}
-                className="px-3 py-1.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-sm font-semibold rounded-lg hover:bg-emerald-500/30 transition-colors"
+                onClick={() => restCredits > 0 && setShowMakeUpConfirm(true)}
+                disabled={restCredits <= 0}
+                title={restCredits <= 0 ? 'No rest credits available' : 'Use 1 rest credit to mark this day as complete'}
+                className={`px-3 py-1.5 border text-sm font-semibold rounded-lg transition-colors ${
+                  restCredits > 0
+                    ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30 cursor-pointer'
+                    : 'bg-slate-700/20 border-slate-600/40 text-slate-500 cursor-not-allowed opacity-60'
+                }`}
               >
                 Make Up
               </button>
