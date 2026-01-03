@@ -193,6 +193,8 @@ CREATE TABLE active_pomodoros (
   is_active BOOLEAN DEFAULT true,
   is_paused BOOLEAN DEFAULT false,
   paused_seconds_remaining INTEGER,
+  overtime_seconds INTEGER DEFAULT 0,
+  pause_periods JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -252,9 +254,13 @@ CREATE TABLE pomodoros (
   task_id UUID,
 
   -- Pomodoro Details
-  duration_minutes INTEGER NOT NULL,
-  started_at TIMESTAMPTZ NOT NULL,
+  duration_minutes INTEGER NOT NULL, -- original planned duration
+  actual_duration_minutes INTEGER, -- actual duration chosen by user (may include overtime)
+  started_at TIMESTAMPTZ NOT NULL, -- actual start time
   completed_at TIMESTAMPTZ,
+  overtime_minutes INTEGER DEFAULT 0, -- how much overtime occurred
+  completion_type TEXT DEFAULT 'natural' CHECK (completion_type IN ('natural', 'manual', 'overtime')),
+  pause_periods JSONB DEFAULT '[]'::jsonb, -- [{paused_at, resumed_at}, ...]
 
   -- Battle Info
   enemy_type TEXT, -- based on category

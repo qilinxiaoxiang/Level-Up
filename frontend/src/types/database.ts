@@ -62,6 +62,8 @@ export type Database = {
           is_active: boolean | null
           is_paused: boolean | null
           paused_seconds_remaining: number | null
+          overtime_seconds: number | null
+          pause_periods: Json | null
           started_at: string
           task_id: string | null
           user_id: string | null
@@ -74,6 +76,8 @@ export type Database = {
           is_active?: boolean | null
           is_paused?: boolean | null
           paused_seconds_remaining?: number | null
+          overtime_seconds?: number | null
+          pause_periods?: Json | null
           started_at: string
           task_id?: string | null
           user_id?: string | null
@@ -86,6 +90,8 @@ export type Database = {
           is_active?: boolean | null
           is_paused?: boolean | null
           paused_seconds_remaining?: number | null
+          overtime_seconds?: number | null
+          pause_periods?: Json | null
           started_at?: string
           task_id?: string | null
           user_id?: string | null
@@ -248,7 +254,9 @@ export type Database = {
       pomodoros: {
         Row: {
           accomplishment_note: string | null
+          actual_duration_minutes: number | null
           completed_at: string | null
+          completion_type: string | null
           created_at: string | null
           duration_minutes: number
           enemy_name: string | null
@@ -257,6 +265,8 @@ export type Database = {
           gold_earned: number | null
           id: string
           item_dropped_id: string | null
+          overtime_minutes: number | null
+          pause_periods: Json | null
           started_at: string
           task_id: string | null
           user_id: string | null
@@ -264,7 +274,9 @@ export type Database = {
         }
         Insert: {
           accomplishment_note?: string | null
+          actual_duration_minutes?: number | null
           completed_at?: string | null
+          completion_type?: string | null
           created_at?: string | null
           duration_minutes: number
           enemy_name?: string | null
@@ -273,6 +285,8 @@ export type Database = {
           gold_earned?: number | null
           id?: string
           item_dropped_id?: string | null
+          overtime_minutes?: number | null
+          pause_periods?: Json | null
           started_at: string
           task_id?: string | null
           user_id?: string | null
@@ -280,7 +294,9 @@ export type Database = {
         }
         Update: {
           accomplishment_note?: string | null
+          actual_duration_minutes?: number | null
           completed_at?: string | null
+          completion_type?: string | null
           created_at?: string | null
           duration_minutes?: number
           enemy_name?: string | null
@@ -289,6 +305,8 @@ export type Database = {
           gold_earned?: number | null
           id?: string
           item_dropped_id?: string | null
+          overtime_minutes?: number | null
+          pause_periods?: Json | null
           started_at?: string
           task_id?: string | null
           user_id?: string | null

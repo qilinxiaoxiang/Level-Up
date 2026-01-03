@@ -218,4 +218,30 @@ The app provides structure and motivation for productivity without gamification 
 
 ---
 
+## 🔨 Development Guidelines
+
+When making changes to this project, please follow these guidelines:
+
+### Responsive Design
+- **Always test on both mobile and desktop** - Check layout, interactions, and usability on different screen sizes
+- Use responsive Tailwind classes (sm:, md:, lg:) appropriately
+- Test touch interactions on mobile devices
+
+### Version Control
+- **Always `git push` after modifications** - Keep the remote repository up to date
+- Write clear, descriptive commit messages
+
+### Documentation
+- **Record significant changes in README.md** - Add concise notes about new features or important modifications
+- **Update existing documentation** - When features change, update the corresponding sections in README.md
+- Keep change descriptions brief but informative
+
+### Database Changes
+- **Modify `database/schema.sql` first** - This is the source of truth for the complete schema
+- **Create separate DDL migration files** - Add incremental migration files under `database/` folder with descriptive names (e.g., `database/add-overtime-tracking.sql`)
+- **CRITICAL: Update `frontend/src/types/database.ts`** - Always update TypeScript type definitions after DDL changes. Vercel deployment will fail if types don't match the database schema
+- This approach facilitates applying changes to existing databases without re-running the entire schema
+
+---
+
 **Built with ❤️ to make productivity feel like an adventure**

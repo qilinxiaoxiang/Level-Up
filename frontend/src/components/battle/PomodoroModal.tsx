@@ -27,6 +27,11 @@ interface PomodoroModalProps {
 
 const DURATION_OPTIONS = [25, 45, 60];
 
+export interface PausePeriod {
+  paused_at: string;
+  resumed_at?: string;
+}
+
 export interface ActivePomodoro {
   id: string;
   user_id: string;
@@ -37,6 +42,8 @@ export interface ActivePomodoro {
   is_active: boolean;
   is_paused?: boolean;
   paused_seconds_remaining?: number;
+  overtime_seconds?: number;
+  pause_periods?: PausePeriod[];
 }
 
 export default function PomodoroModal({
@@ -82,6 +89,8 @@ export default function PomodoroModal({
   const [duration, setDuration] = useState(defaultDuration);
   const [customInput, setCustomInput] = useState(String(defaultDuration));
   const [secondsLeft, setSecondsLeft] = useState(duration * 60);
+  const [overtimeSeconds, setOvertimeSeconds] = useState(0);
+  const [isOvertime, setIsOvertime] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [isComplete, setIsComplete] = useState(false);
@@ -92,12 +101,22 @@ export default function PomodoroModal({
   const [focusRating, setFocusRating] = useState(3);
   const [note, setNote] = useState('');
   const [manualComplete, setManualComplete] = useState(false);
+  const [pausePeriods, setPausePeriods] = useState<PausePeriod[]>([]);
+  const [showDurationChoice, setShowDurationChoice] = useState(false);
+  const [currentPauseStart, setCurrentPauseStart] = useState<Date | null>(null);
+  const [useExtendedTime, setUseExtendedTime] = useState(false);
 
   const formattedTime = useMemo(() => {
-    const minutes = Math.floor(secondsLeft / 60);
-    const seconds = secondsLeft % 60;
-    return `${minutes}:${String(seconds).padStart(2, '0')}`;
-  }, [secondsLeft]);
+    if (isOvertime) {
+      const minutes = Math.floor(overtimeSeconds / 60);
+      const seconds = overtimeSeconds % 60;
+      return `+${minutes}:${String(seconds).padStart(2, '0')}`;
+    } else {
+      const minutes = Math.floor(secondsLeft / 60);
+      const seconds = secondsLeft % 60;
+      return `${minutes}:${String(seconds).padStart(2, '0')}`;
+    }
+  }, [secondsLeft, overtimeSeconds, isOvertime]);
 
   useEffect(() => {
     if (!activeSession) return;
@@ -107,28 +126,53 @@ export default function PomodoroModal({
     const sessionDuration = activeSession.duration_minutes;
     const sessionStart = new Date(activeSession.started_at);
 
+    // Load pause periods from session
+    if (activeSession.pause_periods && Array.isArray(activeSession.pause_periods)) {
+      setPausePeriods(activeSession.pause_periods);
+    }
+
     // Check if session is paused
     if (activeSession.is_paused && activeSession.paused_seconds_remaining !== undefined) {
-      // Use the paused seconds remaining
+      const remaining = activeSession.paused_seconds_remaining;
+
       setDuration(sessionDuration);
       setCustomInput(String(sessionDuration));
       setStartTime(sessionStart);
-      setSecondsLeft(activeSession.paused_seconds_remaining);
+
+      if (remaining < 0) {
+        // Paused in overtime
+        setSecondsLeft(0);
+        setOvertimeSeconds(Math.abs(remaining));
+        setIsOvertime(true);
+      } else {
+        setSecondsLeft(remaining);
+        setOvertimeSeconds(activeSession.overtime_seconds || 0);
+        setIsOvertime(false);
+      }
+
       setIsRunning(false);
       setLocalSession(activeSession);
     } else {
       // Calculate remaining time from ends_at
       const sessionEnd = new Date(activeSession.ends_at);
-      const remainingSeconds = Math.max(
-        Math.round((sessionEnd.getTime() - Date.now()) / 1000),
-        0
-      );
+      const remainingSeconds = Math.round((sessionEnd.getTime() - Date.now()) / 1000);
 
       setDuration(sessionDuration);
       setCustomInput(String(sessionDuration));
       setStartTime(sessionStart);
-      setSecondsLeft(remainingSeconds);
-      setIsRunning(remainingSeconds > 0);
+
+      if (remainingSeconds < 0) {
+        // In overtime
+        setSecondsLeft(0);
+        setOvertimeSeconds(Math.abs(remainingSeconds));
+        setIsOvertime(true);
+      } else {
+        setSecondsLeft(remainingSeconds);
+        setOvertimeSeconds(0);
+        setIsOvertime(false);
+      }
+
+      setIsRunning(true);
       setLocalSession(activeSession);
     }
   }, [activeSession, isComplete, showReport]);
@@ -137,35 +181,38 @@ export default function PomodoroModal({
     if (!isRunning) return;
 
     const interval = window.setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev <= 1) {
-          window.clearInterval(interval);
-          // Timer finished naturally - auto-complete
-          setIsRunning(false);
-          setIsComplete(true);
-          setShowReport(true);
+      if (isOvertime) {
+        // Continue counting overtime
+        setOvertimeSeconds((prev) => prev + 1);
+      } else {
+        setSecondsLeft((prev) => {
+          if (prev <= 1) {
+            // Switch to overtime mode instead of auto-completing
+            setIsOvertime(true);
+            setOvertimeSeconds(0);
 
-          // Show browser notification only for natural completion (not manual)
-          if (!manualComplete && 'Notification' in window && Notification.permission === 'granted') {
-            const notification = new Notification('Pomodoro Complete!', {
-              body: `Great job! You finished your ${duration} minute session for "${task.title}"`,
-              icon: '/favicon.png',
-              tag: 'pomodoro-complete',
-              requireInteraction: true,
-            });
-            notification.onclick = () => {
-              window.focus();
-            };
+            // Show browser notification only when timer reaches 0
+            if ('Notification' in window && Notification.permission === 'granted') {
+              const notification = new Notification('Pomodoro Time Up!', {
+                body: `Timer finished for "${task.title}". Click to complete or continue working.`,
+                icon: '/favicon.png',
+                tag: 'pomodoro-time-up',
+                requireInteraction: true,
+              });
+              notification.onclick = () => {
+                window.focus();
+              };
+            }
+
+            return 0;
           }
-
-          return 0;
-        }
-        return prev - 1;
-      });
+          return prev - 1;
+        });
+      }
     }, 1000);
 
     return () => window.clearInterval(interval);
-  }, [isRunning, duration, task.title, manualComplete]);
+  }, [isRunning, isOvertime, task.title]);
 
 
   const handleStart = async () => {
@@ -224,12 +271,27 @@ export default function PomodoroModal({
     if (!sessionId) return;
 
     try {
+      const pausedAt = new Date();
+
+      // Record pause start time
+      const newPausePeriod: PausePeriod = {
+        paused_at: pausedAt.toISOString(),
+      };
+      const updatedPausePeriods = [...pausePeriods, newPausePeriod];
+      setPausePeriods(updatedPausePeriods);
+      setCurrentPauseStart(pausedAt);
+
+      // Calculate paused_seconds_remaining (can be negative if in overtime)
+      const remainingSeconds = isOvertime ? -overtimeSeconds : secondsLeft;
+
       // Update database with paused state
       const { error } = await supabase
         .from('active_pomodoros')
         .update({
           is_paused: true,
-          paused_seconds_remaining: secondsLeft,
+          paused_seconds_remaining: remainingSeconds,
+          overtime_seconds: overtimeSeconds,
+          pause_periods: updatedPausePeriods,
         })
         .eq('id', sessionId);
 
@@ -240,7 +302,9 @@ export default function PomodoroModal({
       const updatedSession = {
         ...(localSession ?? activeSession!),
         is_paused: true,
-        paused_seconds_remaining: secondsLeft,
+        paused_seconds_remaining: remainingSeconds,
+        overtime_seconds: overtimeSeconds,
+        pause_periods: updatedPausePeriods,
       };
       setLocalSession(updatedSession);
       onSessionStart(updatedSession);
@@ -255,8 +319,21 @@ export default function PomodoroModal({
     if (!sessionId) return;
 
     try {
-      // Calculate new end time based on remaining seconds
-      const newEndsAt = new Date(Date.now() + secondsLeft * 1000);
+      const resumedAt = new Date();
+
+      // Close the current pause period
+      const updatedPausePeriods = pausePeriods.map((period, index) => {
+        if (index === pausePeriods.length - 1 && !period.resumed_at) {
+          return { ...period, resumed_at: resumedAt.toISOString() };
+        }
+        return period;
+      });
+      setPausePeriods(updatedPausePeriods);
+      setCurrentPauseStart(null);
+
+      // Calculate new end time based on remaining seconds (account for overtime)
+      const remainingSeconds = isOvertime ? 0 : secondsLeft;
+      const newEndsAt = new Date(Date.now() + remainingSeconds * 1000);
 
       // Update database with resumed state
       const { error } = await supabase
@@ -265,6 +342,8 @@ export default function PomodoroModal({
           is_paused: false,
           paused_seconds_remaining: null,
           ends_at: newEndsAt.toISOString(),
+          overtime_seconds: overtimeSeconds,
+          pause_periods: updatedPausePeriods,
         })
         .eq('id', sessionId);
 
@@ -277,6 +356,8 @@ export default function PomodoroModal({
         is_paused: false,
         paused_seconds_remaining: undefined,
         ends_at: newEndsAt.toISOString(),
+        overtime_seconds: overtimeSeconds,
+        pause_periods: updatedPausePeriods,
       };
       setLocalSession(updatedSession);
       onSessionStart(updatedSession);
@@ -307,6 +388,31 @@ export default function PomodoroModal({
     } catch (err) {
       setError((err as Error).message || 'Failed to abort pomodoro.');
     }
+  };
+
+  const handleCompleteClick = () => {
+    // When user clicks complete button
+    setManualComplete(true);
+
+    if (isOvertime && overtimeSeconds > 0) {
+      // Show duration choice dialog
+      setShowDurationChoice(true);
+      setIsRunning(false);
+    } else {
+      // No overtime, go directly to report
+      setSecondsLeft(0);
+      setIsComplete(true);
+      setShowReport(true);
+      setIsRunning(false);
+    }
+  };
+
+  const handleDurationChoice = async (chooseExtended: boolean) => {
+    // User chose which duration to use
+    setUseExtendedTime(chooseExtended);
+    setShowDurationChoice(false);
+    setIsComplete(true);
+    setShowReport(true);
   };
 
   const calculateAndUpdateStreak = async (userId: string, todayDate: string) => {
@@ -386,9 +492,32 @@ export default function PomodoroModal({
     try {
       setIsSaving(true);
       const completedAt = new Date();
-      const durationMinutes = localSession?.duration_minutes ?? activeSession?.duration_minutes ?? duration;
+      const originalDurationMinutes = localSession?.duration_minutes ?? activeSession?.duration_minutes ?? duration;
+
+      // Calculate actual duration based on user choice
+      let actualDurationMinutes = originalDurationMinutes;
+      if (isOvertime && overtimeSeconds > 0 && useExtendedTime) {
+        // User chose to count overtime
+        actualDurationMinutes = originalDurationMinutes + Math.ceil(overtimeSeconds / 60);
+      }
+
+      // Determine completion type
+      let completionType: 'natural' | 'manual' | 'overtime' = 'natural';
+      if (manualComplete) {
+        completionType = isOvertime ? 'overtime' : 'manual';
+      } else if (isOvertime) {
+        completionType = 'overtime';
+      }
+
+      const overtimeMinutes = isOvertime ? Math.ceil(overtimeSeconds / 60) : 0;
+
+      // Close any open pause period
+      const finalPausePeriods = pausePeriods.map((period) =>
+        period.resumed_at ? period : { ...period, resumed_at: completedAt.toISOString() }
+      );
+
       const updatedPomodoros = (task.completed_pomodoros || 0) + 1;
-      const updatedMinutes = (task.completed_minutes || 0) + durationMinutes;
+      const updatedMinutes = (task.completed_minutes || 0) + actualDurationMinutes;
       const targetPomodoros =
         task.task_type === 'daily'
           ? task.target_duration_minutes
@@ -401,7 +530,11 @@ export default function PomodoroModal({
       const { error: insertError } = await supabase.from('pomodoros').insert({
         user_id: user.id,
         task_id: task.id,
-        duration_minutes: durationMinutes,
+        duration_minutes: originalDurationMinutes,
+        actual_duration_minutes: actualDurationMinutes,
+        overtime_minutes: overtimeMinutes,
+        completion_type: completionType,
+        pause_periods: finalPausePeriods,
         started_at: startTime.toISOString(),
         completed_at: completedAt.toISOString(),
         enemy_type: task.category || null,
@@ -448,12 +581,12 @@ export default function PomodoroModal({
 
         if (relatedTasksData) {
           for (const relatedTask of relatedTasksData) {
-            const relatedUpdatedMinutes = (relatedTask.completed_minutes || 0) + durationMinutes;
+            const relatedUpdatedMinutes = (relatedTask.completed_minutes || 0) + actualDurationMinutes;
             const relatedUpdatedPomodoros = (relatedTask.completed_pomodoros || 0) + 1;
 
             if (relatedTask.task_type === 'daily') {
               // Update daily task progress - notify for real-time calculation
-              onDailyProgressUpdate?.(relatedTask.id, durationMinutes);
+              onDailyProgressUpdate?.(relatedTask.id, actualDurationMinutes);
             } else if (relatedTask.task_type === 'onetime') {
               // Update one-time task progress
               const relatedTargetMinutes = relatedTask.estimated_minutes ?? (relatedTask.estimated_pomodoros ? relatedTask.estimated_pomodoros * 25 : null);
@@ -477,7 +610,7 @@ export default function PomodoroModal({
       if (isDaily) {
         // Daily task progress is calculated in real-time from pomodoros
         // No persistence needed - just notify for UI update
-        onDailyProgressUpdate?.(task.id, durationMinutes);
+        onDailyProgressUpdate?.(task.id, actualDurationMinutes);
 
         // Check if all active daily tasks are complete for streak tracking
         const today = getLocalDateString();
@@ -497,7 +630,7 @@ export default function PomodoroModal({
           // Get today's pomodoros for all tasks
           const { data: todayPomodoros } = await supabase
             .from('pomodoros')
-            .select('task_id, duration_minutes')
+            .select('task_id, actual_duration_minutes')
             .eq('user_id', user.id)
             .gte('completed_at', dayStart)
             .lte('completed_at', dayEnd);
@@ -521,7 +654,7 @@ export default function PomodoroModal({
           const taskMinutes: Record<string, number> = {};
           (todayPomodoros || []).forEach((p) => {
             if (p.task_id) {
-              taskMinutes[p.task_id] = (taskMinutes[p.task_id] || 0) + (p.duration_minutes || 0);
+              taskMinutes[p.task_id] = (taskMinutes[p.task_id] || 0) + (p.actual_duration_minutes || 0);
             }
           });
 
@@ -569,7 +702,7 @@ export default function PomodoroModal({
         setLocalSession(null);
       }
 
-      onTimeSummaryUpdate?.(durationMinutes, completedAt);
+      onTimeSummaryUpdate?.(actualDurationMinutes, completedAt);
       fetchProfile();
       setShowReport(false);
       onClose();
@@ -603,11 +736,43 @@ export default function PomodoroModal({
         </div>
 
         <div className="text-center space-y-2">
-          <p className="text-sm text-gray-400">Focus timer</p>
-          <div className="text-5xl font-bold text-white">{formattedTime}</div>
+          <p className={`text-sm ${isOvertime ? 'text-orange-400' : 'text-gray-400'}`}>
+            {isOvertime ? 'Overtime' : 'Focus timer'}
+          </p>
+          <div className={`text-5xl font-bold ${isOvertime ? 'text-orange-400' : 'text-white'}`}>
+            {formattedTime}
+          </div>
         </div>
 
-        {!isRunning && !isComplete && !activeSession && (
+        {showDurationChoice && (
+          <div className="space-y-4 bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
+            <div>
+              <p className="text-sm text-orange-300 font-semibold mb-2">Choose Duration</p>
+              <p className="text-xs text-gray-400 mb-4">
+                You worked {Math.ceil(overtimeSeconds / 60)} minutes longer than planned.
+                Would you like to count the extra time?
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleDurationChoice(false)}
+                className="flex-1 px-4 py-2 bg-slate-700 text-white rounded-lg font-semibold hover:bg-slate-600 transition-colors"
+              >
+                Original ({duration} min)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDurationChoice(true)}
+                className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg font-semibold hover:bg-orange-500 transition-colors"
+              >
+                Extended ({duration + Math.ceil(overtimeSeconds / 60)} min)
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!isRunning && !isComplete && !activeSession && !showDurationChoice && (
           <div className="space-y-3">
             <div className="flex items-center justify-center gap-2 flex-wrap">
               {DURATION_OPTIONS.map((option) => (
@@ -714,12 +879,7 @@ export default function PomodoroModal({
             </button>
             <button
               type="button"
-              onClick={() => {
-                setManualComplete(true);
-                setSecondsLeft(0);
-                setIsComplete(true);
-                setShowReport(true);
-              }}
+              onClick={handleCompleteClick}
               className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-500 transition-colors"
             >
               Complete

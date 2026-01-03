@@ -36,7 +36,7 @@ const TodayPomodorosModal = ({ isOpen, onClose, userId, timezone }: TodayPomodor
       // 1. Fetch today's pomodoros
       const { data: pomodorosData, error: pomodorosError } = await supabase
         .from('pomodoros')
-        .select('id, task_id, duration_minutes, started_at, completed_at, focus_rating, accomplishment_note')
+        .select('id, task_id, duration_minutes, actual_duration_minutes, overtime_minutes, completion_type, pause_periods, started_at, completed_at, focus_rating, accomplishment_note')
         .eq('user_id', userId)
         .gte('completed_at', getStartOfDayUTC())
         .lte('completed_at', getEndOfDayUTC())
@@ -143,11 +143,28 @@ const TodayPomodorosModal = ({ isOpen, onClose, userId, timezone }: TodayPomodor
     return `${hours}h ${mins}m`;
   };
 
-  const formatTimeRange = (completedAt: string | null, durationMinutes: number) => {
-    if (!completedAt) return '';
-    const end = new Date(completedAt);
-    const start = new Date(end.getTime() - durationMinutes * 60 * 1000);
-    return `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`;
+  const formatTimeRange = (
+    startedAt: string | null,
+    completedAt: string | null,
+    durationMinutes: number,
+    actualDurationMinutes: number | null,
+    completionType: string | null
+  ) => {
+    if (!completedAt || !startedAt) return '';
+
+    const duration = actualDurationMinutes || durationMinutes;
+
+    if (completionType === 'manual') {
+      // Manual completion (makeup pomodoro): trace back from completed_at
+      const end = new Date(completedAt);
+      const start = new Date(end.getTime() - duration * 60 * 1000);
+      return `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`;
+    } else {
+      // Natural or overtime completion: use actual started_at
+      const start = new Date(startedAt);
+      const end = new Date(start.getTime() + duration * 60 * 1000);
+      return `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`;
+    }
   };
 
   const renderStars = (rating: number | null) => {
@@ -182,7 +199,7 @@ const TodayPomodorosModal = ({ isOpen, onClose, userId, timezone }: TodayPomodor
     }
   };
 
-  const totalMinutes = pomodoros.reduce((sum, p) => sum + (p.duration_minutes || 0), 0);
+  const totalMinutes = pomodoros.reduce((sum, p) => sum + (p.actual_duration_minutes || p.duration_minutes || 0), 0);
   const totalCount = pomodoros.length;
 
   if (!isOpen) return null;
@@ -239,7 +256,15 @@ const TodayPomodorosModal = ({ isOpen, onClose, userId, timezone }: TodayPomodor
               {/* Time Range */}
               <div className="flex items-center gap-2 text-sm text-blue-300">
                 <Clock size={14} />
-                <span>{formatTimeRange(pomodoro.completed_at, pomodoro.duration_minutes)}</span>
+                <span>
+                  {formatTimeRange(
+                    pomodoro.started_at,
+                    pomodoro.completed_at,
+                    pomodoro.duration_minutes,
+                    pomodoro.actual_duration_minutes,
+                    pomodoro.completion_type
+                  )}
+                </span>
               </div>
 
               {/* Task Name(s) */}
@@ -270,7 +295,14 @@ const TodayPomodorosModal = ({ isOpen, onClose, userId, timezone }: TodayPomodor
               {/* Duration and Focus Rating */}
               <div className="flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-1.5 text-gray-300">
-                  <span className="font-medium">{formatTime(pomodoro.duration_minutes)}</span>
+                  <span className="font-medium">
+                    {formatTime(pomodoro.actual_duration_minutes || pomodoro.duration_minutes)}
+                  </span>
+                  {pomodoro.overtime_minutes && pomodoro.overtime_minutes > 0 && (
+                    <span className="text-orange-400 text-xs">
+                      (+{pomodoro.overtime_minutes}m overtime)
+                    </span>
+                  )}
                 </div>
                 {renderStars(pomodoro.focus_rating)}
               </div>
