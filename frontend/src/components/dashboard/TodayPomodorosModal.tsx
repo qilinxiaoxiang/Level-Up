@@ -284,6 +284,12 @@ const TodayPomodorosModal = ({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-bold text-white">{getModalTitle()}</h2>
+            {/* Debug info - remove after testing */}
+            {import.meta.env.DEV && (
+              <span className="text-xs text-gray-500">
+                [isCompleted: {String(isCompleted)}, isToday: {String(isToday())}, hasCallback: {String(!!onMakeUp)}]
+              </span>
+            )}
             {!isCompleted && !isToday() && onMakeUp && (
               <button
                 onClick={() => restCredits > 0 && setShowMakeUpConfirm(true)}
