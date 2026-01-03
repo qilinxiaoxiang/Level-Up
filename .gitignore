@@ -11,6 +11,8 @@ frontend/.env.development
 frontend/.env.test
 frontend/.env.production
 frontend/.env.production.local
+supabase/functions/.env
+supabase/.env
 
 # Dependencies
 node_modules/

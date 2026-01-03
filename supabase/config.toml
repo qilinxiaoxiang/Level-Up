@@ -1,0 +1,4 @@
+# Supabase Edge Functions Configuration
+
+[functions.revelation]
+verify_jwt = true
