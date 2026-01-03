@@ -221,6 +221,44 @@ const TodayPomodorosModal = ({
     }
   };
 
+  const calculateWorkPeriods = (
+    startedAt: string,
+    completedAt: string,
+    pausePeriods: PausePeriod[] | null | undefined
+  ): string[] => {
+    if (!pausePeriods || pausePeriods.length === 0) {
+      // No pauses - single time slot
+      return [`${format(new Date(startedAt), 'h:mm a')} - ${format(new Date(completedAt), 'h:mm a')}`];
+    }
+
+    const periods: string[] = [];
+    let currentStart = new Date(startedAt);
+
+    // Sort pause periods by paused_at time
+    const sortedPauses = [...pausePeriods].sort((a, b) =>
+      new Date(a.paused_at).getTime() - new Date(b.paused_at).getTime()
+    );
+
+    sortedPauses.forEach(pause => {
+      const pauseTime = new Date(pause.paused_at);
+      // Add work period before this pause
+      periods.push(`${format(currentStart, 'h:mm a')} - ${format(pauseTime, 'h:mm a')}`);
+
+      // Next work period starts when resumed (or skip if no resume time)
+      if (pause.resumed_at) {
+        currentStart = new Date(pause.resumed_at);
+      }
+    });
+
+    // Add final work period from last resume to completion
+    const lastPause = sortedPauses[sortedPauses.length - 1];
+    if (lastPause?.resumed_at) {
+      periods.push(`${format(new Date(lastPause.resumed_at), 'h:mm a')} - ${format(new Date(completedAt), 'h:mm a')}`);
+    }
+
+    return periods;
+  };
+
   const renderStars = (rating: number | null) => {
     if (!rating) return <span className="text-xs text-gray-500">No rating</span>;
     return (
@@ -343,17 +381,30 @@ const TodayPomodorosModal = ({
               className="bg-slate-800/40 rounded-lg p-4 border border-slate-700/50 space-y-2"
             >
               {/* Time Range */}
-              <div className="flex items-center gap-2 text-sm text-blue-300">
-                <Clock size={14} />
-                <span>
-                  {formatTimeRange(
-                    pomodoro.started_at,
-                    pomodoro.completed_at,
-                    pomodoro.duration_minutes,
-                    pomodoro.actual_duration_minutes,
-                    pomodoro.completion_type
-                  )}
-                </span>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-sm text-blue-300">
+                  <Clock size={14} />
+                  <span className="font-medium">
+                    {pomodoro.pause_periods && pomodoro.pause_periods.length > 0
+                      ? 'Work Periods:'
+                      : formatTimeRange(
+                          pomodoro.started_at,
+                          pomodoro.completed_at,
+                          pomodoro.duration_minutes,
+                          pomodoro.actual_duration_minutes,
+                          pomodoro.completion_type
+                        )}
+                  </span>
+                </div>
+                {pomodoro.pause_periods && pomodoro.pause_periods.length > 0 && pomodoro.started_at && pomodoro.completed_at && (
+                  <div className="ml-5 space-y-0.5">
+                    {calculateWorkPeriods(pomodoro.started_at, pomodoro.completed_at, pomodoro.pause_periods).map((period, idx) => (
+                      <div key={idx} className="text-xs text-blue-200">
+                        • {period}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Task Name(s) */}
