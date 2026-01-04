@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pencil, Trash2, BarChart3, Archive, Check, Flame, Zap, Circle } from 'lucide-react';
+import { Pencil, Trash2, BarChart3, Archive, Check, AlertTriangle, AlertCircle, Minus } from 'lucide-react';
 import type { Task, TaskCategory, TaskPriority, TaskType } from '../../types';
 import type { TaskInput } from '../../hooks/useTasks';
 import { CATEGORY_EMOJIS, PRIORITY_COLORS } from '../../types';
@@ -14,6 +14,7 @@ interface TaskCardProps {
   onStartPomodoro: (task: Task) => void;
   isRunning: boolean;
   todayMinutes?: number;
+  lastPomodoroAt?: string | null;
   onArchive?: (task: Task) => void;
   onBurnDown?: (task: Task) => void;
 }
@@ -40,6 +41,7 @@ export default function TaskCard({
   onStartPomodoro,
   isRunning,
   todayMinutes,
+  lastPomodoroAt,
   onArchive,
   onBurnDown,
 }: TaskCardProps) {
@@ -94,7 +96,7 @@ export default function TaskCard({
     dailyCompletedMinutes >= targetMinutes;
   const baseGradient = 'linear-gradient(90deg, #3b82f6 0%, #22d3ee 100%)';
   const overGradient = 'linear-gradient(90deg, #c084fc 0%, #e879f9 50%, #f472b6 100%)';
-
+  const dayMs = 24 * 60 * 60 * 1000;
   useEffect(() => {
     if (!confirmDelete) return;
     const timer = window.setTimeout(() => setConfirmDelete(false), 3000);
@@ -157,6 +159,16 @@ export default function TaskCard({
   };
 
   const isGolden = task.is_completed || isDailyDone;
+  const staleDays = lastPomodoroAt
+    ? Math.max(0, Math.floor((Date.now() - new Date(lastPomodoroAt).getTime()) / dayMs))
+    : null;
+  const stalenessLabel = lastPomodoroAt
+    ? staleDays === 0
+      ? 'Last: today'
+      : `Last: ${staleDays}d`
+    : 'Last: never';
+  const staleOverlayOpacity =
+    !isGolden && staleDays !== null ? Math.min(staleDays * 0.04, 0.45) : 0;
 
   return (
     <div
@@ -166,6 +178,12 @@ export default function TaskCard({
           : 'bg-slate-800 border-purple-500/20 shadow-lg'
       }`}
     >
+      {!isGolden && staleOverlayOpacity > 0 && (
+        <div
+          className="absolute inset-0 bg-black pointer-events-none"
+          style={{ opacity: staleOverlayOpacity }}
+        />
+      )}
       {/* Golden metallic shine effect overlay */}
       {isGolden && (
         <>
@@ -206,14 +224,19 @@ export default function TaskCard({
                     {task.title}
                   </h3>
                   {task.priority === 'high' && (
-                    <Flame size={16} className={isGolden ? 'text-red-700' : 'text-red-400'} />
+                    <AlertTriangle size={16} className={isGolden ? 'text-red-700' : 'text-red-400'} />
                   )}
                   {task.priority === 'medium' && (
-                    <Zap size={16} className={isGolden ? 'text-orange-700' : 'text-yellow-400'} />
+                    <AlertCircle size={16} className={isGolden ? 'text-amber-700' : 'text-amber-400'} />
                   )}
                   {task.priority === 'low' && (
-                    <Circle size={14} className={isGolden ? 'text-green-700' : 'text-green-400'} />
+                    <Minus size={14} className={isGolden ? 'text-emerald-700' : 'text-emerald-400'} />
                   )}
+                </div>
+                <div className={`text-[10px] uppercase tracking-wide ${
+                  isGolden ? 'text-amber-800' : staleDays !== null && staleDays >= 7 ? 'text-amber-300' : 'text-gray-400'
+                }`}>
+                  {stalenessLabel}
                 </div>
                 {showDescription && task.description && task.description.trim() && (
                   <div className={`mt-2 text-xs whitespace-pre-wrap ${

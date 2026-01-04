@@ -23,6 +23,7 @@ A personal productivity application that transforms your daily tasks and goals i
 - Recurring tasks with daily time targets (e.g., "Study - 60 min/day")
 - Real-time progress calculation from pomodoro sessions
 - Progress bars showing completion status
+- **Freshness cues**: Task cards dim and show "Last worked" age when a task has been idle
 - Automatic streak tracking with customizable day cut time
 - Rest credits for maintaining flexibility
 
@@ -32,6 +33,7 @@ A personal productivity application that transforms your daily tasks and goals i
 - Burn-down charts to visualize progress vs. deadline
 - Archive completed tasks
 - Link to daily tasks to share time tracking without double-counting statistics
+ - Priority badges use clear alert icons for fast scanning
 
 ### Pomodoro System
 - Choose duration: 15, 25, 45, 60 minutes (or custom)

@@ -69,6 +69,7 @@ export default function Goals() {
   const [activeSession, setActiveSession] = useState<ActivePomodoro | null>(null);
   const [pomodoroError, setPomodoroError] = useState<string | null>(null);
   const [dailyProgress, setDailyProgress] = useState<Record<string, number>>({});
+  const [lastPomodoroByTask, setLastPomodoroByTask] = useState<Record<string, string>>({});
   const [showArchive, setShowArchive] = useState(false);
   const [showBurndownFor, setShowBurndownFor] = useState<Task | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -217,6 +218,39 @@ export default function Goals() {
 
     fetchDailyProgress();
   }, [user, profile?.daily_reset_time, profile?.timezone_name, profile]);
+
+  useEffect(() => {
+    const fetchLastPomodoros = async () => {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('pomodoros')
+          .select('task_id, completed_at')
+          .eq('user_id', user.id)
+          .not('completed_at', 'is', null)
+          .order('completed_at', { ascending: false })
+          .limit(2000);
+
+        if (error) {
+          console.error('❌ Error fetching last pomodoros:', error);
+          return;
+        }
+
+        const map: Record<string, string> = {};
+        (data || []).forEach((p) => {
+          if (p.task_id && p.completed_at && !map[p.task_id]) {
+            map[p.task_id] = p.completed_at;
+          }
+        });
+        setLastPomodoroByTask(map);
+      } catch (err) {
+        console.error('❌ Error fetching last pomodoros:', err);
+      }
+    };
+
+    fetchLastPomodoros();
+  }, [user, tasks]);
 
   useEffect(() => {
     const fetchTimeSummary = async () => {
@@ -586,6 +620,7 @@ export default function Goals() {
                       }}
                       isRunning={activeSession?.task_id === task.id}
                       todayMinutes={dailyProgress[task.id]}
+                      lastPomodoroAt={lastPomodoroByTask[task.id]}
                     />
                   ))
                 ) : (
@@ -619,6 +654,7 @@ export default function Goals() {
                         setActivePomodoroTask(selectedTask);
                       }}
                       isRunning={activeSession?.task_id === task.id}
+                      lastPomodoroAt={lastPomodoroByTask[task.id]}
                       onArchive={(taskToArchive) => {
                         updateTask(taskToArchive.id, {
                           is_archived: true,

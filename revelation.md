@@ -11,8 +11,7 @@
 3. [Continuity System](#continuity-system)
 4. [Overwhelm Detection & Triage](#overwhelm-detection--triage)
 5. [Future Enhancements](#future-enhancements)
-6. [Implementation Roadmap](#implementation-roadmap)
-7. [Conclusion](#conclusion)
+6. [Conclusion](#conclusion)
 
 ---
 # Revelation Feature - AI-Powered Daily Planning
@@ -1314,35 +1313,6 @@ Show plan history:
 - Shows growth over time (meaning)
 - Makes every day part of a larger quest (re-enchantment)
 
----
-
-## Implementation Priority
-
-### Phase 1: Database & Basic Tracking
-1. Create `revelation_plans` table
-2. Create `daily_summaries` table
-3. Update Edge Function to save plans
-4. Add quest completion trigger
-
-### Phase 2: Daily Summary Generation
-1. Implement day transition detection
-2. Build `collectYesterdayData` function
-3. Create daily summary prompt
-4. Generate and store summaries
-
-### Phase 3: Continuity Integration
-1. Update main Revelation prompt with continuity sections
-2. Pass last plan and yesterday summary to LLM
-3. Test narrative continuity
-
-### Phase 4: UI Enhancements
-1. Display yesterday's summary in modal
-2. Add plan history view
-3. Show quest completion status
-4. Visualize streak of plan adherence
-
----
-
 ## Example: A Day in the Life
 
 ### Day 1 (Monday Morning)
@@ -2115,38 +2085,6 @@ Best regards,
 **Emotional Value**: "This isn't failure. You're brave for facing it."
 **Reduced Decision Cost**: "I've triaged. Follow this plan."
 **Meaning**: "Strategic retreat is heroic wisdom."
-
----
-
-## Implementation Priority
-
-### Phase 1: Detection (Week 1)
-- Implement overwhelm calculation
-- Add severity levels
-- Database tracking of overwhelm states
-
-### Phase 2: Triage Logic (Week 2)
-- Task scoring algorithm
-- Automated triage recommendations
-- Negotiability detection
-
-### Phase 3: Prompt Enhancement (Week 3)
-- Overwhelm mode system prompt
-- Triage output format
-- Compassionate framing
-
-### Phase 4: UI Components (Week 4)
-- Crisis alert banner
-- Triage plan display
-- Immediate actions checklist
-- Email template generation
-
-### Phase 5: Testing & Refinement (Week 5)
-- Test with real overwhelm scenarios
-- Refine triage accuracy
-- Polish messaging
-
----
 
 ## Conclusion
 
@@ -2923,40 +2861,6 @@ Friday's window is yours for the Ancient Texts (Study Task #2).
 This week, you don't conquer all - you conquer what matters, when time allows.
 That is wisdom. That is the hero's true strength.
 ```
-
-### Implementation Priority
-
-**Phase 1: Calendar MVP (3-4 weeks)**
-- Google Calendar OAuth integration
-- Basic event sync
-- Free time block calculation
-- Enhanced prompt with calendar context
-
-**Phase 2: Calendar Advanced (2 weeks)**
-- Apple Calendar support
-- Event categorization (AI-powered)
-- Energy level inference
-- Week-view planning
-
-**Phase 3: MCP Foundation (3 weeks)**
-- Build MCP server
-- Implement core tools (tasks, goals, pomodoros)
-- Test with Claude Opus 4
-- Basic agent exploration
-
-**Phase 4: MCP Advanced (3-4 weeks)**
-- Pattern detection tools
-- Cross-referencing tools
-- Agentic revelation generation
-- Performance optimization
-
-**Phase 5: Integration (2 weeks)**
-- Calendar + MCP combined
-- Smart caching strategies
-- UI polish
-- User testing
-
----
 
 ## Database Additions Summary
 
