@@ -17,8 +17,8 @@ export default function RevelationModal({ onClose, onRevelationReceived }: Revel
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4">
-      <div className="w-full max-w-3xl bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 rounded-2xl border border-purple-500/30 shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black sm:px-4">
+      <div className="w-full h-full sm:h-auto sm:max-w-3xl bg-gradient-to-br from-slate-900 via-purple-900/80 to-slate-900 sm:rounded-2xl border border-purple-500/30 shadow-2xl p-6 space-y-4 sm:max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -49,7 +49,7 @@ export default function RevelationModal({ onClose, onRevelationReceived }: Revel
               value={userMessage}
               onChange={(e) => setUserMessage(e.target.value)}
               placeholder="e.g., 'Feeling tired today', 'Need to finish project X', 'Want to focus on creative work'..."
-              className="w-full px-4 py-3 bg-slate-800/50 border border-purple-500/20 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:border-purple-500/50 transition-colors disabled:opacity-60"
+              className="w-full px-4 py-3 bg-slate-800/50 border border-purple-500/20 rounded-lg text-white placeholder-gray-500 text-base focus:outline-none focus:border-purple-500/50 transition-colors disabled:opacity-60"
               rows={3}
               disabled={loading}
             />
