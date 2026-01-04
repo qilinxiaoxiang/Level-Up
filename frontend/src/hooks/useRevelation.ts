@@ -42,7 +42,7 @@ export function useRevelation() {
     setDayCutOffsetMinutes(parseDailyResetTimeToMinutes(dayCutTime));
 
     // Get user's SYSTEM local time (their actual timezone)
-    const currentLocalTime = format(now, 'MM/dd/yyyy, HH:mm:ss');
+    const currentLocalTime = format(now, 'MMM dd yyyy, h:mm a');
     const dayOfWeek = format(now, 'EEEE');
     const localTimezoneOffset =
       new Intl.DateTimeFormat('en-US', { timeZoneName: 'shortOffset' })
@@ -63,7 +63,8 @@ export function useRevelation() {
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
     const timeUntilDayEnd = `${diffHours} hours ${diffMinutes} min`;
-    const dayCutLocalTime = format(new Date(endOfDayDate.getTime() + 1), 'hh:mm a');
+    const isTomorrow = format(now, 'yyyy-MM-dd') !== format(endOfDayDate, 'yyyy-MM-dd');
+    const dayCutLocalTime = format(new Date(endOfDayDate.getTime() + 1), 'h:mm a') + (isTomorrow ? ' tomorrow' : '');
 
     // Fetch goals
     const { data: goalsData } = await supabase

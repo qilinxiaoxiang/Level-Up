@@ -142,8 +142,8 @@ CRITICAL RULES:
 
   // Timing
   userPrompt += `## Time\n`;
-  userPrompt += `- Current local time: ${context.temporal.currentLocalTime} (${context.temporal.dayOfWeek}, ${context.temporal.localTimezoneOffset})\n`;
-  userPrompt += `- Day cut (local time): ${context.temporal.dayCutLocalTime}\n`;
+  userPrompt += `- Current time: ${context.temporal.currentLocalTime} (${context.temporal.dayOfWeek}, ${context.temporal.localTimezoneOffset})\n`;
+  userPrompt += `- Day cut: ${context.temporal.dayCutLocalTime}\n`;
   userPrompt += `- Time until day cut: ${context.temporal.timeUntilDayEnd}\n\n`;
 
   // Streak and today's work
