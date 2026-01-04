@@ -75,14 +75,20 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Revelation error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : '';
+
+    console.error('Error details:', { errorMessage, errorStack });
+
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: errorMessage,
+        details: errorStack,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: 500,
       }
     );
   }
