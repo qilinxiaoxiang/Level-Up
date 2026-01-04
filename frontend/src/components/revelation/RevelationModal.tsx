@@ -112,7 +112,7 @@ export default function RevelationModal({ onClose }: RevelationModalProps) {
                 {loading ? (
                   <>
                     <Loader2 className="animate-spin" size={16} />
-                    Consulting the Oracle...
+                    Seeking Revelation...
                   </>
                 ) : (
                   <>

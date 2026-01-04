@@ -58,6 +58,26 @@ serve(async (req) => {
       provider
     );
 
+    // Save revelation to database
+    const { error: saveError } = await supabase.from('revelations').insert({
+      user_id: user.id,
+      user_message: userMessage || null,
+      provider,
+      revelation_text: revelation,
+      context_snapshot: {
+        timestamp: context.temporal.currentTime,
+        timeOfDay: context.temporal.timeOfDay,
+        streak: context.performance.streak.current,
+        tasksCompleted: context.tasks.daily.todayProgress.filter((t) => t.isDone).length,
+        totalDailyTasks: context.tasks.daily.todayProgress.length,
+      },
+    });
+
+    if (saveError) {
+      console.error('Error saving revelation:', saveError);
+      // Don't fail the request if saving fails
+    }
+
     // Return the revelation
     return new Response(
       JSON.stringify({
