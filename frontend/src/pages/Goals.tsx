@@ -16,7 +16,8 @@ import type { Task } from '../types';
 import { useUserStore } from '../store/useUserStore';
 import { useAuth } from '../hooks/useAuth';
 import { getLocalDateString, getLocalWeekStart, getStartOfDayUTC, getEndOfDayUTC } from '../utils/dateUtils';
-import { Clock } from 'lucide-react';
+import { Clock, Sparkles } from 'lucide-react';
+import RevelationModal from '../components/revelation/RevelationModal';
 
 // Helper function to convert database result to ActivePomodoro
 const convertToActivePomodoro = (data: any): ActivePomodoro => {
@@ -78,6 +79,7 @@ export default function Goals() {
   const [timezoneName, setTimezoneName] = useState('Asia/Shanghai');
   const [showWeeklyHistogram, setShowWeeklyHistogram] = useState(false);
   const [showTodayPomodoros, setShowTodayPomodoros] = useState(false);
+  const [showRevelation, setShowRevelation] = useState(false);
 
   // Request notification permission on page load
   useEffect(() => {
@@ -390,6 +392,25 @@ export default function Goals() {
             </button>
           </div>
         </div>
+
+        {/* Revelation Feature - Prominent CTA */}
+        <button
+          onClick={() => setShowRevelation(true)}
+          className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 hover:from-purple-700 hover:via-pink-700 hover:to-purple-700 text-white rounded-xl p-5 shadow-2xl transition-all transform hover:scale-[1.01] border border-purple-400/30"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Sparkles size={28} className="text-yellow-300 animate-pulse" />
+              <div className="text-left">
+                <h3 className="text-xl font-bold">Seek Revelation</h3>
+                <p className="text-purple-100 text-xs mt-0.5">
+                  Divine clarity for your journey awaits...
+                </p>
+              </div>
+            </div>
+            <Sparkles size={20} className="text-pink-300" />
+          </div>
+        </button>
 
         {/* Active Pomodoro Card */}
         {activeSession && tasks.find((t) => t.id === activeSession.task_id) && (
@@ -830,6 +851,9 @@ export default function Goals() {
           timezone={profile.timezone_name || 'Asia/Shanghai'}
         />
       )}
+
+      {/* Revelation Modal */}
+      {showRevelation && <RevelationModal onClose={() => setShowRevelation(false)} />}
     </div>
   );
 }
