@@ -1,12 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Sparkles } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useGoals } from '../hooks/useGoals';
+import RevelationModal from '../components/revelation/RevelationModal';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
   const { goals, hasAllGoals, loading: goalsLoading } = useGoals();
+  const [showRevelation, setShowRevelation] = useState(false);
 
   // Redirect to goals page if user doesn't have all goals set
   useEffect(() => {
@@ -77,6 +80,27 @@ export default function Dashboard() {
               ></div>
             </div>
           </div>
+        </div>
+
+        {/* Revelation Feature - Prominent CTA */}
+        <div className="mb-8">
+          <button
+            onClick={() => setShowRevelation(true)}
+            className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 hover:from-purple-700 hover:via-pink-700 hover:to-purple-700 text-white rounded-xl p-6 shadow-2xl transition-all transform hover:scale-[1.02] border border-purple-400/30"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Sparkles size={32} className="text-yellow-300 animate-pulse" />
+                <div className="text-left">
+                  <h3 className="text-2xl font-bold">Seek Revelation</h3>
+                  <p className="text-purple-100 text-sm mt-1">
+                    Divine clarity for your journey awaits...
+                  </p>
+                </div>
+              </div>
+              <Sparkles size={24} className="text-pink-300" />
+            </div>
+          </button>
         </div>
 
         {/* Quick Stats */}
@@ -150,6 +174,9 @@ export default function Dashboard() {
           <p className="text-gray-400">Tasks and battles are coming in the next phase.</p>
         </div>
       </div>
+
+      {/* Revelation Modal */}
+      {showRevelation && <RevelationModal onClose={() => setShowRevelation(false)} />}
     </div>
   );
 }
