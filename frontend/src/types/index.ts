@@ -8,13 +8,8 @@ export type GoalType = '3year' | '1year' | '1month';
 export interface UserProfile {
   id: string;
   username: string | null;
-  level: number | null;
   current_hp: number | null;
   max_hp: number | null;
-  strength: number | null;
-  intelligence: number | null;
-  discipline: number | null;
-  focus: number | null;
   pomodoro_duration: number | null;
   rest_credits: number | null;
   timezone_name: string | null;

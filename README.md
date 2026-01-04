@@ -2,6 +2,14 @@
 
 A personal productivity application that transforms your daily tasks and goals into an engaging RPG experience. Complete Pomodoro sessions, earn rewards, level up your character, and track your progress toward long-term goals.
 
+## ⚠️ Important Development Rules
+
+### Database Design
+- **NEVER use foreign key constraints** in the database schema
+- Use `user_id` fields for data ownership but WITHOUT foreign key relationships
+- When querying with joins, do NOT use Supabase's foreign key syntax - manually join data in application code
+- This prevents cascading issues and keeps the database flexible
+
 ## 🎮 Core Features
 
 ### Goal System
@@ -187,7 +195,10 @@ See `next.md` for upcoming features and improvements:
 ## 🔧 Key Database Features
 
 ### Automatic Profile Creation
-New users automatically get a profile with default stats and preferences.
+New users automatically get a profile with default preferences.
+
+### Schema Notes
+- User profiles no longer store RPG level or stat attributes; prompts use raw data only.
 
 ### Real-Time Status Calculation
 Daily task "Done today" status is calculated in real-time from pomodoro sessions. No persistence needed - status reflects actual time logged since last day cut.

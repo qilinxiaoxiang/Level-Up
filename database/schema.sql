@@ -19,8 +19,7 @@ CREATE TABLE user_profiles (
   username TEXT UNIQUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
 
-  -- Character Stats
-  level INTEGER DEFAULT 1,
+  -- Progress
   current_xp INTEGER DEFAULT 0,
   total_xp INTEGER DEFAULT 0,
   gold INTEGER DEFAULT 0,
@@ -28,12 +27,6 @@ CREATE TABLE user_profiles (
   -- HP System
   current_hp INTEGER DEFAULT 100,
   max_hp INTEGER DEFAULT 100,
-
-  -- Stats (grow with usage)
-  strength INTEGER DEFAULT 1,
-  intelligence INTEGER DEFAULT 1,
-  discipline INTEGER DEFAULT 1,
-  focus INTEGER DEFAULT 1,
 
   -- Preferences
   pomodoro_duration INTEGER DEFAULT 25, -- minutes
@@ -94,9 +87,6 @@ CREATE TABLE items (
   description TEXT,
   item_type TEXT NOT NULL CHECK (item_type IN ('weapon', 'armor', 'accessory', 'consumable', 'special')),
   rarity TEXT DEFAULT 'common' CHECK (rarity IN ('common', 'uncommon', 'rare', 'epic', 'legendary')),
-
-  -- Requirements
-  required_level INTEGER DEFAULT 1,
 
   -- Shop Info
   is_purchasable BOOLEAN DEFAULT true,
@@ -508,16 +498,7 @@ CREATE TRIGGER update_user_equipment_updated_at
 -- DATABASE FUNCTIONS
 -- ============================================================
 
--- Function to calculate XP needed for next level
--- Formula: level * 100 (can be adjusted)
-CREATE OR REPLACE FUNCTION xp_needed_for_level(current_level INTEGER)
-RETURNS INTEGER AS $$
-BEGIN
-  RETURN current_level * 100;
-END;
-$$ LANGUAGE plpgsql;
-
--- Function to add rewards and check for level up
+-- Function to add rewards
 CREATE OR REPLACE FUNCTION add_rewards(
   user_uuid UUID,
   gold_amount INTEGER,
@@ -525,10 +506,7 @@ CREATE OR REPLACE FUNCTION add_rewards(
 )
 RETURNS JSONB AS $$
 DECLARE
-  new_level INTEGER;
   new_xp INTEGER;
-  xp_needed INTEGER;
-  leveled_up BOOLEAN := false;
 BEGIN
   -- Add gold and XP
   UPDATE user_profiles
@@ -537,32 +515,11 @@ BEGIN
     current_xp = current_xp + xp_amount,
     total_xp = total_xp + xp_amount
   WHERE id = user_uuid
-  RETURNING level, current_xp INTO new_level, new_xp;
-
-  -- Check for level up
-  xp_needed := xp_needed_for_level(new_level);
-
-  WHILE new_xp >= xp_needed LOOP
-    new_xp := new_xp - xp_needed;
-    new_level := new_level + 1;
-    leveled_up := true;
-    xp_needed := xp_needed_for_level(new_level);
-  END LOOP;
-
-  -- If leveled up, update profile
-  IF leveled_up THEN
-    UPDATE user_profiles
-    SET
-      level = new_level,
-      current_xp = new_xp,
-      max_hp = max_hp + 10 * (new_level - level) -- +10 HP per level
-    WHERE id = user_uuid;
-  END IF;
+  RETURNING current_xp INTO new_xp;
 
   -- Return result
   RETURN jsonb_build_object(
-    'leveled_up', leveled_up,
-    'new_level', new_level,
+    'leveled_up', false,
     'current_xp', new_xp
   );
 END;
@@ -641,7 +598,6 @@ INSERT INTO achievements (name, description, category, criteria, gold_reward, xp
   ('Week Warrior', 'Maintain a 7-day streak', 'streak', '{"streak_days": 7}', 100, 200, '🔥'),
   ('Century Club', 'Complete 100 Pomodoros', 'combat', '{"total_pomodoros": 100}', 500, 1000, '💯'),
   ('Dedication', 'Maintain a 30-day streak', 'streak', '{"streak_days": 30}', 500, 1000, '🏆'),
-  ('Level 10', 'Reach level 10', 'completion', '{"level": 10}', 1000, 0, '⭐'),
   ('Wealthy', 'Accumulate 10,000 gold', 'collection', '{"total_gold": 10000}', 0, 2000, '💰');
 
 -- Seed initial user profile if the auth user already exists
@@ -694,7 +650,7 @@ WHERE estimated_minutes IS NULL
 -- Stores AI-powered revelation history for users
 CREATE TABLE IF NOT EXISTS revelations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL,
 
   -- Input
   user_message TEXT,

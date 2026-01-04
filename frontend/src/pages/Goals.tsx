@@ -18,6 +18,8 @@ import { useAuth } from '../hooks/useAuth';
 import { getLocalDateString, getLocalWeekStart, getStartOfDayUTC, getEndOfDayUTC } from '../utils/dateUtils';
 import { Clock, Sparkles } from 'lucide-react';
 import RevelationModal from '../components/revelation/RevelationModal';
+import LatestRevelation from '../components/revelation/LatestRevelation';
+import RevelationHistoryModal from '../components/revelation/RevelationHistoryModal';
 
 // Helper function to convert database result to ActivePomodoro
 const convertToActivePomodoro = (data: any): ActivePomodoro => {
@@ -80,6 +82,8 @@ export default function Goals() {
   const [showWeeklyHistogram, setShowWeeklyHistogram] = useState(false);
   const [showTodayPomodoros, setShowTodayPomodoros] = useState(false);
   const [showRevelation, setShowRevelation] = useState(false);
+  const [showRevelationHistory, setShowRevelationHistory] = useState(false);
+  const [revelationRefreshTrigger, setRevelationRefreshTrigger] = useState(0);
 
   // Request notification permission on page load
   useEffect(() => {
@@ -393,24 +397,12 @@ export default function Goals() {
           </div>
         </div>
 
-        {/* Revelation Feature - Prominent CTA */}
-        <button
-          onClick={() => setShowRevelation(true)}
-          className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 hover:from-purple-700 hover:via-pink-700 hover:to-purple-700 text-white rounded-xl p-5 shadow-2xl transition-all transform hover:scale-[1.01] border border-purple-400/30"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Sparkles size={28} className="text-yellow-300 animate-pulse" />
-              <div className="text-left">
-                <h3 className="text-xl font-bold">Seek Revelation</h3>
-                <p className="text-purple-100 text-xs mt-0.5">
-                  Divine clarity for your journey awaits...
-                </p>
-              </div>
-            </div>
-            <Sparkles size={20} className="text-pink-300" />
-          </div>
-        </button>
+        {/* Revelation Feature */}
+        <LatestRevelation
+          onViewHistory={() => setShowRevelationHistory(true)}
+          onSeekRevelation={() => setShowRevelation(true)}
+          refreshTrigger={revelationRefreshTrigger}
+        />
 
         {/* Active Pomodoro Card */}
         {activeSession && tasks.find((t) => t.id === activeSession.task_id) && (
@@ -853,7 +845,17 @@ export default function Goals() {
       )}
 
       {/* Revelation Modal */}
-      {showRevelation && <RevelationModal onClose={() => setShowRevelation(false)} />}
+      {showRevelation && (
+        <RevelationModal
+          onClose={() => setShowRevelation(false)}
+          onRevelationReceived={() => setRevelationRefreshTrigger((prev) => prev + 1)}
+        />
+      )}
+
+      {/* Revelation History Modal */}
+      {showRevelationHistory && (
+        <RevelationHistoryModal onClose={() => setShowRevelationHistory(false)} />
+      )}
     </div>
   );
 }

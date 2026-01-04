@@ -144,8 +144,8 @@ export default function CheckInCalendar({ streak, restCredits, onClose }: CheckI
           <p className="text-sm text-gray-400">Loading calendar...</p>
         ) : (
           <div className="grid grid-cols-7 gap-2 text-xs text-center">
-            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((label) => (
-              <div key={label} className="text-gray-500">
+            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((label, index) => (
+              <div key={`${label}-${index}`} className="text-gray-500">
                 {label}
               </div>
             ))}

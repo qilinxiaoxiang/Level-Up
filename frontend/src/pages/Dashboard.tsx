@@ -49,20 +49,14 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* Character Stats Card */}
+        {/* Vitals */}
         <div className="bg-slate-800 rounded-lg p-6 border border-purple-500/20 shadow-lg mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">Character Stats</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-slate-900 p-4 rounded-lg">
-              <p className="text-gray-400 text-sm">Level</p>
-              <p className="text-3xl font-bold text-yellow-400">{profile?.level || 1}</p>
-            </div>
-            <div className="bg-slate-900 p-4 rounded-lg">
-              <p className="text-gray-400 text-sm">HP</p>
-              <p className="text-3xl font-bold text-red-400">
-                {profile?.current_hp || 100}/{profile?.max_hp || 100}
-              </p>
-            </div>
+          <h2 className="text-2xl font-bold text-white mb-4">Vitals</h2>
+          <div className="bg-slate-900 p-4 rounded-lg">
+            <p className="text-gray-400 text-sm">HP</p>
+            <p className="text-3xl font-bold text-red-400">
+              {profile?.current_hp || 100}/{profile?.max_hp || 100}
+            </p>
           </div>
 
           {/* HP Bar */}

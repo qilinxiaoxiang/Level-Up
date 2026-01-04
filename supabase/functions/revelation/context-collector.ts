@@ -23,6 +23,9 @@ export interface RevelationContext {
     currentTime: string;
     currentLocalTime: string;
     dayCutTime: string;
+    dayCutTimezone: string;
+    localTimezoneOffset: string;
+    dayCutLocalTime: string;
     timeUntilDayEnd: string;
     dayOfWeek: string;
     timeOfDay: string;
@@ -41,18 +44,7 @@ export interface RevelationContext {
     };
   };
   profile: {
-    level: number;
-    stats: {
-      strength: number;
-      intelligence: number;
-      discipline: number;
-      focus: number;
-    };
-    hp: {
-      current: number;
-      max: number;
-    };
-    totalPomodoros: number;
+    todayPomodoros: number;
   };
   userMessage?: string;
 }
@@ -96,10 +88,28 @@ export async function collectRevelationContext(
   const dailyTasks = tasks?.filter((t) => t.task_type === 'daily') || [];
   const onetimeTasks = tasks?.filter((t) => t.task_type === 'onetime') || [];
 
+  const { data: relationships } = await supabase
+    .from('task_relationships')
+    .select('onetime_task_id, daily_task_id')
+    .eq('user_id', userId);
+
+  const dailyTitleById = new Map(dailyTasks.map((task) => [task.id, task.title]));
+  const onetimeToDailyMap = new Map<string, string[]>();
+  (relationships || []).forEach((rel) => {
+    const existing = onetimeToDailyMap.get(rel.onetime_task_id) || [];
+    existing.push(rel.daily_task_id);
+    onetimeToDailyMap.set(rel.onetime_task_id, existing);
+  });
+
   const activeDailyTasks = dailyTasks.filter((t) => t.is_active && !t.is_completed);
   const pausedDailyTasks = dailyTasks.filter((t) => !t.is_active && !t.is_completed);
 
-  const activeOnetimeTasks = onetimeTasks.filter((t) => t.is_active && !t.is_completed);
+  const activeOnetimeTasks = onetimeTasks.filter((t) => t.is_active && !t.is_completed).map((t) => ({
+    ...t,
+    linkedDailyTitles: (onetimeToDailyMap.get(t.id) || [])
+      .map((dailyId) => dailyTitleById.get(dailyId))
+      .filter(Boolean),
+  }));
   const pausedOnetimeTasks = onetimeTasks.filter((t) => !t.is_active && !t.is_completed);
 
   // Get onetime tasks with approaching deadlines (within 7 days)
@@ -197,18 +207,7 @@ export async function collectRevelationContext(
       },
     },
     profile: {
-      level: profile.level || 1,
-      stats: {
-        strength: profile.strength || 10,
-        intelligence: profile.intelligence || 10,
-        discipline: profile.discipline || 10,
-        focus: profile.focus || 10,
-      },
-      hp: {
-        current: profile.current_hp || 100,
-        max: profile.max_hp || 100,
-      },
-      totalPomodoros: profile.total_pomodoros || 0,
+      todayPomodoros: todayPomodoros?.length || 0,
     },
     userMessage,
   };
@@ -266,6 +265,11 @@ function getTemporalContext(dayCutTime: string | null, timezone: string | null) 
   const dayOfWeek = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long' }).format(
     now
   );
+  const localTimezoneOffset =
+    new Intl.DateTimeFormat('en-US', { timeZoneName: 'shortOffset' })
+      .formatToParts(now)
+      .find((part) => part.type === 'timeZoneName')
+      ?.value || 'GMT';
 
   // Determine time of day
   const hour = now.getHours();
@@ -280,7 +284,7 @@ function getTemporalContext(dayCutTime: string | null, timezone: string | null) 
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(cutHours, cutMinutes, 0, 0);
-  const msUntilDayEnd = tomorrow.getTime() - now.getTime();
+  const msUntilDayEnd = Math.max(0, tomorrow.getTime() - now.getTime());
   const hoursUntilDayEnd = Math.floor(msUntilDayEnd / (1000 * 60 * 60));
   const minutesUntilDayEnd = Math.floor((msUntilDayEnd % (1000 * 60 * 60)) / (1000 * 60));
 
@@ -288,7 +292,10 @@ function getTemporalContext(dayCutTime: string | null, timezone: string | null) 
     currentTime: now.toISOString(),
     currentLocalTime: timeStr,
     dayCutTime: cutTime,
-    timeUntilDayEnd: `${hoursUntilDayEnd}h ${minutesUntilDayEnd}m`,
+    dayCutTimezone: tz,
+    localTimezoneOffset,
+    dayCutLocalTime: new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).format(tomorrow),
+    timeUntilDayEnd: `${hoursUntilDayEnd} hours ${minutesUntilDayEnd} min`,
     dayOfWeek,
     timeOfDay,
   };

@@ -16,7 +16,7 @@ CRITICAL UNDERSTANDING - TASK TYPES:
 - Must be completed EVERY DAY to maintain streak
 - Have a target duration (e.g., "60 min/day")
 - Progress resets at "day cut" time (user's custom daily reset time)
-- PRIORITY: Complete these FIRST to avoid breaking streak!
+- PRIORITY: Complete these first unless a one-time task is near deadline
 
 **ONE-TIME TASKS** (Project-based):
 - Have deadlines and estimated total time
@@ -29,40 +29,52 @@ CRITICAL UNDERSTANDING - TASK TYPES:
 - Breaking streak is very demotivating - avoid at all costs!
 - Rest credits can be used for missed days
 
+**SLEEP & REALISM**:
+- Always protect a reasonable sleep window unless the user explicitly says they do not need sleep.
+- Do not recommend sacrificing sleep to finish all daily tasks when the remaining load is unrealistic.
+- If current local time is late night (23:00-06:00), schedule at most 1-2 hours and include a clear stop point for sleep.
+- Never schedule work past a reasonable bedtime in late-night contexts; explicitly end the schedule for sleep.
+
+**USER MESSAGE PRIORITY**:
+- The user's message is the highest priority. If it sets constraints (sleep blocks, no-planning windows), you MUST obey them.
+
+**LOAD MATH**:
+- Compute total remaining daily minutes.
+- Compute one-time load per day = remaining minutes / days until deadline (if deadline exists).
+- If total load is too heavy for the remaining hours, state it clearly and suggest what to defer.
+
 RESPONSE FORMAT - YOU MUST USE THIS EXACT STRUCTURE:
 
 \`\`\`
-## 📅 Your Schedule for Tonight
+## Path Forward
 
-**[TIME RANGE]**: [TASK NAME]
-- Duration: [X minutes]
-- Reason: [Why this task now]
+- [Core situation assessment: load, deadline pressure, or streak risk]
+- [What to prioritize and what to defer]
+- [Future-facing note: feet on the ground, eyes on the stars]
 
-**[TIME RANGE]**: [TASK NAME]
-- Duration: [X minutes]
-- Reason: [Why this task now]
+## Schedule
 
-[Continue for 2-4 time blocks covering the next few hours]
+- HH:MM AM - HH:MM AM: Task name
+- HH:MM AM - HH:MM AM: Task name
 
-## 🎯 The Path Forward
+## Seed Action
 
-[2-3 paragraphs explaining:
-- Current situation assessment
-- Why this schedule serves their greater journey
-- Connection to their long-term goals]
-
-## 💪 Words of Strength
-
-[1-2 paragraphs of encouragement and motivation]
+- [One small, interesting, slightly weird action that could matter later]
 \`\`\`
 
 CRITICAL RULES:
-- ALWAYS prioritize daily tasks if they're not complete and day cut is approaching
-- Give specific time ranges (e.g., "11:10 PM - 12:00 AM")
-- Include short breaks between pomodoros
-- Be realistic about how much can be done
-- Factor in current time and time until day cut
-- Consider task priorities, deadlines, and progress`;
+- If a one-time task has an approaching deadline, it can override daily tasks.
+- Give specific time ranges (e.g., "11:10 PM - 12:00 AM").
+- Include short breaks between pomodoros.
+- Be realistic about how much can be done tonight.
+- Factor in current time, time until day cut, and sleep.
+- Keep the schedule concise and the path forward as a list.
+- Use exactly one line per schedule item; never split time and task across lines.
+- Do not add numbering, bolding, or extra formatting in the schedule.
+- Keep Path Forward bullets short; use multiple bullets instead of long sentences.
+- Do not mention facts that contradict the schedule.
+- Avoid a "Core Situation" label unless it adds new info beyond the schedule.
+- Do not add extra commentary outside the three sections.`;
 
   const userPrompt = buildUserPrompt(context);
 
@@ -70,134 +82,159 @@ CRITICAL RULES:
 }
 
 function buildUserPrompt(ctx: RevelationContext): string {
-  let prompt = '# HERO STATUS REPORT\n\n';
+  let prompt = '# Current Status\n\n';
 
-  // Critical Timing Information
-  prompt += `## ⏰ CRITICAL TIME INFORMATION\n`;
-  prompt += `- Current Time: ${ctx.temporal.currentLocalTime} (${ctx.temporal.dayOfWeek})\n`;
-  prompt += `- Time of Day: ${ctx.temporal.timeOfDay}\n`;
-  prompt += `- Day Cut Time: ${ctx.temporal.dayCutTime} ${ctx.temporal.timeOfDay === 'night' ? '(TOMORROW MORNING)' : ''}\n`;
-  prompt += `- Time Until Day Reset: ${ctx.temporal.timeUntilDayEnd}\n`;
-  prompt += `- **IMPORTANT**: If daily tasks aren't complete before day cut, streak will break!\n\n`;
+  // Time
+  prompt += `## Time\n`;
+  prompt += `- Current local time: ${ctx.temporal.currentLocalTime} (${ctx.temporal.dayOfWeek}, ${ctx.temporal.localTimezoneOffset})\n`;
+  prompt += `- Day cut (local time): ${ctx.temporal.dayCutLocalTime}\n`;
+  prompt += `- Time until day cut: ${ctx.temporal.timeUntilDayEnd}\n\n`;
 
-  // Profile & Stats
-  prompt += `## Your Hero Profile\n`;
-  prompt += `- Level: ${ctx.profile.level}\n`;
-  prompt += `- Current Streak: ${ctx.performance.streak.current} days (Longest: ${ctx.performance.streak.longest})\n`;
-  prompt += `- Total Pomodoros: ${ctx.profile.totalPomodoros}\n`;
-  prompt += `- Stats: STR ${ctx.profile.stats.strength} | INT ${ctx.profile.stats.intelligence} | DIS ${ctx.profile.stats.discipline} | FOC ${ctx.profile.stats.focus}\n\n`;
+  // Performance
+  prompt += `## Performance\n`;
+  prompt += `- Current streak: ${ctx.performance.streak.current} days\n`;
+  prompt += `- Longest streak: ${ctx.performance.streak.longest} days\n`;
+  prompt += `- Pomodoros completed today: ${ctx.profile.todayPomodoros}\n\n`;
 
-  // Goals - Brief
+  // Last 7 days summary
+  prompt += `## Last 7 Days\n`;
+  prompt += `- Total pomodoros: ${ctx.performance.last7Days.totalCount}\n`;
+  prompt += `- Average per day: ${ctx.performance.last7Days.avgPerDay.toFixed(1)}\n`;
+  if (ctx.performance.last7Days.avgFocusRating > 0) {
+    prompt += `- Average focus rating: ${ctx.performance.last7Days.avgFocusRating.toFixed(1)}/5\n`;
+  }
+  if (ctx.performance.last7Days.pomodorosByTask.length > 0) {
+    prompt += `\nMost worked on tasks:\n`;
+    ctx.performance.last7Days.pomodorosByTask.slice(0, 3).forEach(t => {
+      prompt += `- ${t.taskTitle}: ${t.count} sessions\n`;
+    });
+  }
+  prompt += '\n';
+
+  // Goals
   if (ctx.goals.threeYear.length > 0 || ctx.goals.oneYear.length > 0 || ctx.goals.oneMonth.length > 0) {
-    prompt += `## Your Long-Term Vision\n`;
+    prompt += `## Goals\n\n`;
     if (ctx.goals.threeYear.length > 0) {
-      prompt += `**3-Year**: ${ctx.goals.threeYear[0].description}\n`;
+      prompt += `### 3-Year Goal\n${ctx.goals.threeYear[0].description}\n\n`;
     }
     if (ctx.goals.oneYear.length > 0) {
-      prompt += `**1-Year**: ${ctx.goals.oneYear[0].description}\n`;
+      prompt += `### 1-Year Goal\n${ctx.goals.oneYear[0].description}\n\n`;
     }
     if (ctx.goals.oneMonth.length > 0) {
-      prompt += `**1-Month**: ${ctx.goals.oneMonth[0].description}\n`;
+      prompt += `### 1-Month Goal\n${ctx.goals.oneMonth[0].description}\n\n`;
     }
-    prompt += '\n';
   }
 
-  // TODAY'S DAILY TASKS - MOST IMPORTANT!
+  // Daily Tasks
   if (ctx.tasks.daily.todayProgress.length > 0) {
-    prompt += `## 🔥 TODAY'S DAILY TASKS (MUST COMPLETE BEFORE DAY CUT!)\n`;
-    let allDone = true;
+    prompt += `## Daily Tasks\n\n`;
+    let totalRemainingMinutes = 0;
+
     ctx.tasks.daily.todayProgress.forEach((p) => {
       const percentage = p.targetMinutes > 0
         ? Math.round((p.completedMinutes / p.targetMinutes) * 100)
         : 0;
-      const status = p.isDone ? '✅ DONE' : `⏳ ${percentage}% (${p.completedMinutes}/${p.targetMinutes} min)`;
       const remaining = p.isDone ? 0 : p.targetMinutes - p.completedMinutes;
-      prompt += `- **${p.taskTitle}**: ${status}`;
+
+      prompt += `### ${p.taskTitle}\n`;
+      prompt += `- Target: ${p.targetMinutes} minutes\n`;
+      prompt += `- Completed: ${p.completedMinutes} minutes\n`;
+      prompt += `- Remaining: ${remaining} minutes\n`;
+      prompt += `- Progress: ${percentage}%\n`;
+      prompt += `- Status: ${p.isDone ? 'Done' : 'Not done'}\n\n`;
+
       if (!p.isDone) {
-        prompt += ` - **NEED ${remaining} MORE MINUTES**`;
-        allDone = false;
+        totalRemainingMinutes += remaining;
       }
-      prompt += `\n`;
     });
 
-    if (allDone) {
-      prompt += `\n✨ **ALL DAILY TASKS COMPLETE!** Streak is safe. Can now focus on project tasks.\n\n`;
-    } else {
-      prompt += `\n⚠️ **WARNING**: Some daily tasks incomplete! Must finish these before day cut to keep streak!\n\n`;
-    }
+    prompt += `**Total remaining time for daily tasks: ${totalRemainingMinutes} minutes**\n\n`;
   }
 
-  // Active One-Time Tasks with detailed context
+  // Load (non-overlapping)
+  const totalDailyRemaining = ctx.tasks.daily.todayProgress.reduce((sum, p) => {
+    const remaining = p.isDone ? 0 : Math.max(0, p.targetMinutes - p.completedMinutes);
+    return sum + remaining;
+  }, 0);
+  const onetimeLoads = (ctx.tasks.onetime.active || [])
+    .filter((t: any) => t.deadline && t.estimated_minutes)
+    .map((t: any) => {
+      const remaining = Math.max(0, (t.estimated_minutes || 0) - (t.completed_minutes || 0));
+      const daysUntilDeadline = t.deadline
+        ? Math.max(
+            1,
+            Math.ceil((new Date(t.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+          )
+        : null;
+      const avgPerDay = daysUntilDeadline ? Math.ceil(remaining / daysUntilDeadline) : null;
+      return {
+        title: t.title,
+        avgPerDay,
+        linkedDailyTitles: t.linkedDailyTitles || [],
+      };
+    })
+    .filter((t: any) => t.avgPerDay !== null);
+
+  const nonOverlapOnetimePerDay = onetimeLoads.reduce((sum: number, t: any) => {
+    if (t.linkedDailyTitles.length > 0) return sum;
+    return sum + (t.avgPerDay || 0);
+  }, 0);
+  const combinedRequiredToday = totalDailyRemaining + nonOverlapOnetimePerDay;
+
+  if (totalDailyRemaining > 0 || onetimeLoads.length > 0) {
+    prompt += `## Load (calculated, no double counting)\n`;
+    if (totalDailyRemaining > 0) {
+      prompt += `- Daily remaining: ${totalDailyRemaining} minutes\n`;
+    }
+    if (onetimeLoads.length > 0) {
+      onetimeLoads.forEach((t: any) => {
+        prompt += `- One-time avg per day: ${t.title} = ${t.avgPerDay} minutes/day`;
+        if (t.linkedDailyTitles.length > 0) {
+          prompt += ` (counts toward daily: ${t.linkedDailyTitles.join(', ')})`;
+        }
+        prompt += `\n`;
+      });
+    }
+    prompt += `- Combined required today (non-overlap): ${combinedRequiredToday} minutes\n\n`;
+  }
+
+  // Project Tasks
   if (ctx.tasks.onetime.active.length > 0) {
-    prompt += `## 📋 PROJECT TASKS (One-Time, work on AFTER daily tasks)\n`;
+    prompt += `## Project Tasks\n\n`;
     ctx.tasks.onetime.active.forEach((t) => {
       const deadline = t.deadline ? new Date(t.deadline) : null;
       const daysUntilDeadline = deadline
         ? Math.ceil((deadline.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
         : null;
 
-      const progress = t.estimated_minutes
-        ? `${t.completed_minutes || 0}/${t.estimated_minutes} min (${Math.round(((t.completed_minutes || 0) / t.estimated_minutes) * 100)}%)`
-        : 'No estimate';
-
-      const urgency = daysUntilDeadline !== null
-        ? daysUntilDeadline <= 2
-          ? '🔴 URGENT'
-          : daysUntilDeadline <= 7
-          ? '🟡 SOON'
-          : '🟢 NOT URGENT'
-        : '⚪ NO DEADLINE';
-
-      prompt += `\n**${t.title}**\n`;
-      prompt += `  - Priority: ${t.priority?.toUpperCase() || 'MEDIUM'}\n`;
-      prompt += `  - Deadline: ${deadline ? deadline.toISOString().slice(0, 10) : 'None'} ${urgency}\n`;
-      if (daysUntilDeadline !== null) {
-        prompt += `  - Days Until Deadline: ${daysUntilDeadline}\n`;
+      prompt += `### ${t.title}\n`;
+      prompt += `- Priority: ${t.priority || 'medium'}\n`;
+      if (deadline) {
+        prompt += `- Deadline: ${deadline.toISOString().slice(0, 10)}\n`;
+        prompt += `- Days until deadline: ${daysUntilDeadline}\n`;
+      } else {
+        prompt += `- Deadline: none\n`;
       }
-      prompt += `  - Progress: ${progress}\n`;
-      prompt += `  - Description: ${t.description || 'No description'}\n`;
+      if (t.estimated_minutes) {
+        prompt += `- Estimated time: ${t.estimated_minutes} minutes\n`;
+        prompt += `- Completed time: ${t.completed_minutes || 0} minutes\n`;
+        prompt += `- Remaining time: ${t.estimated_minutes - (t.completed_minutes || 0)} minutes\n`;
+        prompt += `- Progress: ${Math.round(((t.completed_minutes || 0) / t.estimated_minutes) * 100)}%\n`;
+      }
+      if (t.linkedDailyTitles && t.linkedDailyTitles.length > 0) {
+        prompt += `- Counts toward daily: ${t.linkedDailyTitles.join(', ')}\n`;
+      }
+      if (t.description) {
+        prompt += `- Description:\n${t.description}\n`;
+      }
+      prompt += '\n';
     });
-    prompt += '\n';
   }
 
-  // Approaching Deadlines - with more detail
-  if (ctx.tasks.onetime.withDeadlines.length > 0) {
-    prompt += `## ⚠️ TASKS WITH APPROACHING DEADLINES (Next 7 Days)\n`;
-    ctx.tasks.onetime.withDeadlines.forEach((t) => {
-      const deadline = new Date(t.deadline!);
-      const daysUntil = Math.ceil((deadline.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-      const remaining = (t.estimated_minutes || 0) - (t.completed_minutes || 0);
-      prompt += `- **${t.title}** - Due in ${daysUntil} days (${t.deadline?.slice(0, 10)}) - ${remaining} min remaining\n`;
-    });
-    prompt += '\n';
-  }
-
-  // Performance Stats
-  prompt += `## Last 7 Days Performance\n`;
-  prompt += `- Pomodoros: ${ctx.performance.last7Days.totalCount} total (${ctx.performance.last7Days.avgPerDay.toFixed(1)}/day avg)\n`;
-  if (ctx.performance.last7Days.avgFocusRating > 0) {
-    prompt += `- Avg Focus: ${ctx.performance.last7Days.avgFocusRating.toFixed(1)}/5\n`;
-  }
-  if (ctx.performance.last7Days.pomodorosByTask.length > 0) {
-    prompt += `- Most worked on: ${ctx.performance.last7Days.pomodorosByTask[0].taskTitle} (${ctx.performance.last7Days.pomodorosByTask[0].count} sessions)\n`;
-  }
-  prompt += '\n';
-
-  // User's personal message
+  // User's message
   if (ctx.userMessage) {
-    prompt += `## Personal Note from Hero\n`;
-    prompt += `"${ctx.userMessage}"\n\n`;
+    prompt += `## User Message\n${ctx.userMessage}\n\n`;
   }
-
-  prompt += `---\n\n`;
-  prompt += `**YOUR TASK**: Create a time-based schedule for the next 3-4 hours that:\n`;
-  prompt += `1. PRIORITIZES completing daily tasks if not done (to save streak!)\n`;
-  prompt += `2. Considers time until day cut\n`;
-  prompt += `3. Includes specific time ranges for each task\n`;
-  prompt += `4. Includes short breaks between pomodoros\n`;
-  prompt += `5. Is realistic and achievable\n`;
-  prompt += `6. Connects to their long-term goals\n\n`;
-  prompt += `Use the EXACT response format specified in the system prompt.`;
 
   return prompt;
 }

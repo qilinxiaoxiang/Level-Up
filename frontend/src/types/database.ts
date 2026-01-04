@@ -217,7 +217,6 @@ export type Database = {
           item_type: string
           name: string
           rarity: string | null
-          required_level: number | null
           special_effects: Json | null
           stat_bonuses: Json | null
         }
@@ -231,7 +230,6 @@ export type Database = {
           item_type: string
           name: string
           rarity?: string | null
-          required_level?: number | null
           special_effects?: Json | null
           stat_bonuses?: Json | null
         }
@@ -245,7 +243,6 @@ export type Database = {
           item_type?: string
           name?: string
           rarity?: string | null
-          required_level?: number | null
           special_effects?: Json | null
           stat_bonuses?: Json | null
         }
@@ -536,17 +533,12 @@ export type Database = {
           current_hp: number | null
           current_streak: number | null
           daily_reset_time: string | null
-          discipline: number | null
-          focus: number | null
           id: string
-          intelligence: number | null
           last_streak_date: string | null
-          level: number | null
           longest_streak: number | null
           max_hp: number | null
           pomodoro_duration: number | null
           rest_credits: number | null
-          strength: number | null
           total_pomodoros: number | null
           timezone_name: string | null
           updated_at: string | null
@@ -557,17 +549,12 @@ export type Database = {
           current_hp?: number | null
           current_streak?: number | null
           daily_reset_time?: string | null
-          discipline?: number | null
-          focus?: number | null
           id: string
-          intelligence?: number | null
           last_streak_date?: string | null
-          level?: number | null
           longest_streak?: number | null
           max_hp?: number | null
           pomodoro_duration?: number | null
           rest_credits?: number | null
-          strength?: number | null
           total_pomodoros?: number | null
           timezone_name?: string | null
           updated_at?: string | null
@@ -578,17 +565,12 @@ export type Database = {
           current_hp?: number | null
           current_streak?: number | null
           daily_reset_time?: string | null
-          discipline?: number | null
-          focus?: number | null
           id?: string
-          intelligence?: number | null
           last_streak_date?: string | null
-          level?: number | null
           longest_streak?: number | null
           max_hp?: number | null
           pomodoro_duration?: number | null
           rest_credits?: number | null
-          strength?: number | null
           total_pomodoros?: number | null
           timezone_name?: string | null
           updated_at?: string | null
@@ -629,6 +611,36 @@ export type Database = {
         }
         Relationships: []
       }
+      revelations: {
+        Row: {
+          id: string
+          user_id: string
+          user_message: string | null
+          provider: string
+          revelation_text: string
+          context_snapshot: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          user_message?: string | null
+          provider?: string
+          revelation_text: string
+          context_snapshot?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          user_message?: string | null
+          provider?: string
+          revelation_text?: string
+          context_snapshot?: Json | null
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -651,7 +663,6 @@ export type Database = {
         Args: { hp_change: number; user_uuid: string }
         Returns: number
       }
-      xp_needed_for_level: { Args: { current_level: number }; Returns: number }
     }
     Enums: {
       [_ in never]: never
