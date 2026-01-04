@@ -192,7 +192,9 @@ export function useRevelation() {
           .in('id', taskIds)
       : { data: [] };
 
-    const taskTitleMap = new Map(tasksForPomodoros?.map(t => [t.id, t.title]) || []);
+    const taskTitleMap = new Map<string, string>(
+      tasksForPomodoros?.map(t => [t.id, t.title] as [string, string]) || []
+    );
 
     const pomodorosByTask = pomodorosData?.reduce((acc, p) => {
       const taskTitle = p.task_id ? (taskTitleMap.get(p.task_id) || 'Unknown') : 'Unknown';
