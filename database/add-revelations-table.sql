@@ -16,10 +16,7 @@ CREATE TABLE IF NOT EXISTS revelations (
   context_snapshot JSONB,
 
   -- Metadata
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-
-  -- Indexes
-  CONSTRAINT revelations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- Create index for fast user lookups
