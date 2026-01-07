@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       achievements: {
@@ -61,9 +86,9 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_paused: boolean | null
-          paused_seconds_remaining: number | null
           overtime_seconds: number | null
           pause_periods: Json | null
+          paused_seconds_remaining: number | null
           started_at: string
           task_id: string | null
           user_id: string | null
@@ -75,9 +100,9 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_paused?: boolean | null
-          paused_seconds_remaining?: number | null
           overtime_seconds?: number | null
           pause_periods?: Json | null
+          paused_seconds_remaining?: number | null
           started_at: string
           task_id?: string | null
           user_id?: string | null
@@ -89,9 +114,9 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_paused?: boolean | null
-          paused_seconds_remaining?: number | null
           overtime_seconds?: number | null
           pause_periods?: Json | null
+          paused_seconds_remaining?: number | null
           started_at?: string
           task_id?: string | null
           user_id?: string | null
@@ -119,48 +144,6 @@ export type Database = {
           date?: string
           id?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      daily_task_completions: {
-        Row: {
-          created_at: string | null
-          date: string
-          gold_earned: number | null
-          id: string
-          is_completed: boolean | null
-          minutes_completed: number | null
-          target_minutes: number
-          task_id: string | null
-          updated_at: string | null
-          user_id: string | null
-          xp_earned: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          date: string
-          gold_earned?: number | null
-          id?: string
-          is_completed?: boolean | null
-          minutes_completed?: number | null
-          target_minutes: number
-          task_id?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-          xp_earned?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          date?: string
-          gold_earned?: number | null
-          id?: string
-          is_completed?: boolean | null
-          minutes_completed?: number | null
-          target_minutes?: number
-          task_id?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-          xp_earned?: number | null
         }
         Relationships: []
       }
@@ -259,7 +242,6 @@ export type Database = {
           enemy_name: string | null
           enemy_type: string | null
           focus_rating: number | null
-          gold_earned: number | null
           id: string
           item_dropped_id: string | null
           overtime_minutes: number | null
@@ -267,7 +249,6 @@ export type Database = {
           started_at: string
           task_id: string | null
           user_id: string | null
-          xp_earned: number | null
         }
         Insert: {
           accomplishment_note?: string | null
@@ -279,7 +260,6 @@ export type Database = {
           enemy_name?: string | null
           enemy_type?: string | null
           focus_rating?: number | null
-          gold_earned?: number | null
           id?: string
           item_dropped_id?: string | null
           overtime_minutes?: number | null
@@ -287,7 +267,6 @@ export type Database = {
           started_at: string
           task_id?: string | null
           user_id?: string | null
-          xp_earned?: number | null
         }
         Update: {
           accomplishment_note?: string | null
@@ -299,7 +278,6 @@ export type Database = {
           enemy_name?: string | null
           enemy_type?: string | null
           focus_rating?: number | null
-          gold_earned?: number | null
           id?: string
           item_dropped_id?: string | null
           overtime_minutes?: number | null
@@ -307,37 +285,39 @@ export type Database = {
           started_at?: string
           task_id?: string | null
           user_id?: string | null
-          xp_earned?: number | null
         }
         Relationships: []
       }
-      streak_history: {
+      revelations: {
         Row: {
-          created_at: string | null
-          ended_at: string | null
+          context_snapshot: Json | null
+          created_at: string
           id: string
-          is_active: boolean | null
-          started_at: string
-          streak_count: number
-          user_id: string | null
+          provider: string
+          revelation_text: string
+          suggestion_type: string | null
+          user_id: string
+          user_message: string | null
         }
         Insert: {
-          created_at?: string | null
-          ended_at?: string | null
+          context_snapshot?: Json | null
+          created_at?: string
           id?: string
-          is_active?: boolean | null
-          started_at: string
-          streak_count: number
-          user_id?: string | null
+          provider?: string
+          revelation_text: string
+          suggestion_type?: string | null
+          user_id: string
+          user_message?: string | null
         }
         Update: {
-          created_at?: string | null
-          ended_at?: string | null
+          context_snapshot?: Json | null
+          created_at?: string
           id?: string
-          is_active?: boolean | null
-          started_at?: string
-          streak_count?: number
-          user_id?: string | null
+          provider?: string
+          revelation_text?: string
+          suggestion_type?: string | null
+          user_id?: string
+          user_message?: string | null
         }
         Relationships: []
       }
@@ -380,7 +360,6 @@ export type Database = {
           description: string | null
           estimated_minutes: number | null
           estimated_pomodoros: number | null
-          gold_reward: number | null
           id: string
           is_active: boolean | null
           is_archived: boolean | null
@@ -395,7 +374,6 @@ export type Database = {
           unlocked_by_task_id: string | null
           updated_at: string | null
           user_id: string | null
-          xp_reward: number | null
         }
         Insert: {
           archived_at?: string | null
@@ -408,7 +386,6 @@ export type Database = {
           description?: string | null
           estimated_minutes?: number | null
           estimated_pomodoros?: number | null
-          gold_reward?: number | null
           id?: string
           is_active?: boolean | null
           is_archived?: boolean | null
@@ -423,7 +400,6 @@ export type Database = {
           unlocked_by_task_id?: string | null
           updated_at?: string | null
           user_id?: string | null
-          xp_reward?: number | null
         }
         Update: {
           archived_at?: string | null
@@ -436,7 +412,6 @@ export type Database = {
           description?: string | null
           estimated_minutes?: number | null
           estimated_pomodoros?: number | null
-          gold_reward?: number | null
           id?: string
           is_active?: boolean | null
           is_archived?: boolean | null
@@ -451,7 +426,6 @@ export type Database = {
           unlocked_by_task_id?: string | null
           updated_at?: string | null
           user_id?: string | null
-          xp_reward?: number | null
         }
         Relationships: []
       }
@@ -539,8 +513,8 @@ export type Database = {
           max_hp: number | null
           pomodoro_duration: number | null
           rest_credits: number | null
-          total_pomodoros: number | null
           timezone_name: string | null
+          total_pomodoros: number | null
           updated_at: string | null
           username: string | null
         }
@@ -555,8 +529,8 @@ export type Database = {
           max_hp?: number | null
           pomodoro_duration?: number | null
           rest_credits?: number | null
-          total_pomodoros?: number | null
           timezone_name?: string | null
+          total_pomodoros?: number | null
           updated_at?: string | null
           username?: string | null
         }
@@ -571,73 +545,10 @@ export type Database = {
           max_hp?: number | null
           pomodoro_duration?: number | null
           rest_credits?: number | null
-          total_pomodoros?: number | null
           timezone_name?: string | null
+          total_pomodoros?: number | null
           updated_at?: string | null
           username?: string | null
-        }
-        Relationships: []
-      }
-      user_shop_items: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          gold_cost: number
-          id: string
-          is_purchased: boolean | null
-          name: string
-          purchased_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          gold_cost: number
-          id?: string
-          is_purchased?: boolean | null
-          name: string
-          purchased_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          gold_cost?: number
-          id?: string
-          is_purchased?: boolean | null
-          name?: string
-          purchased_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      revelations: {
-        Row: {
-          id: string
-          user_id: string
-          user_message: string | null
-          provider: string
-          revelation_text: string
-          context_snapshot: Json | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          user_message?: string | null
-          provider?: string
-          revelation_text: string
-          context_snapshot?: Json | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          user_message?: string | null
-          provider?: string
-          revelation_text?: string
-          context_snapshot?: Json | null
-          created_at?: string
         }
         Relationships: []
       }
@@ -791,6 +702,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
