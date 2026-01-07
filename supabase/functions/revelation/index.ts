@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { callLLM } from './llm-client.ts';
 import { generateRevelationPrompt } from './prompt-generator.ts';
+import { generateTaskSuggestionPrompt } from './task-suggestion-prompt.ts';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -11,19 +12,21 @@ serve(async (req) => {
 
   try {
     // Parse request body - now accepting context instead of prompts
-    const { context, provider = 'deepseek' } = await req.json();
+    const { context, provider = 'deepseek', suggestionType = 'revelation' } = await req.json();
 
     if (!context) {
       throw new Error('Missing context');
     }
 
-    // Generate prompts from context
+    // Generate prompts based on suggestion type
     console.log('Generating prompts from context...');
-    const { systemPrompt, userPrompt } = generateRevelationPrompt(context);
+    const { systemPrompt, userPrompt } = suggestionType === 'next_task'
+      ? generateTaskSuggestionPrompt(context)
+      : generateRevelationPrompt(context);
 
     // Call LLM
     console.log('Calling LLM with provider:', provider);
-    const revelation = await callLLM(
+    const response = await callLLM(
       [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
@@ -31,19 +34,33 @@ serve(async (req) => {
       provider
     );
 
-    // Return the revelation along with prompts for debugging
-    return new Response(
-      JSON.stringify({
-        success: true,
-        revelation,
-        systemPrompt,
-        userPrompt,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
-    );
+    // Return different response based on type
+    if (suggestionType === 'next_task') {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          suggestion: response,
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
+    } else {
+      // Return the revelation along with prompts for debugging
+      return new Response(
+        JSON.stringify({
+          success: true,
+          revelation: response,
+          systemPrompt,
+          userPrompt,
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
+    }
   } catch (error) {
     console.error('Revelation error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

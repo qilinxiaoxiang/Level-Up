@@ -20,6 +20,7 @@ import { Clock, Sparkles } from 'lucide-react';
 import RevelationModal from '../components/revelation/RevelationModal';
 import LatestRevelation from '../components/revelation/LatestRevelation';
 import RevelationHistoryModal from '../components/revelation/RevelationHistoryModal';
+import NextTaskSuggestion from '../components/revelation/NextTaskSuggestion';
 
 // Helper function to convert database result to ActivePomodoro
 const convertToActivePomodoro = (data: any): ActivePomodoro => {
@@ -437,6 +438,9 @@ export default function Goals() {
           onSeekRevelation={() => setShowRevelation(true)}
           refreshTrigger={revelationRefreshTrigger}
         />
+
+        {/* Next Task Suggestion */}
+        <NextTaskSuggestion />
 
         {/* Active Pomodoro Card */}
         {activeSession && tasks.find((t) => t.id === activeSession.task_id) && (
