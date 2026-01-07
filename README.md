@@ -274,7 +274,15 @@ When making changes to this project, please follow these guidelines:
   supabase db push --linked
   ```
 - **Update `database/schema.sql`** - Apply the same changes to the main schema file for new setups
-- **CRITICAL: Update `frontend/src/types/database.ts`** - Always update TypeScript type definitions after DDL changes. Vercel deployment will fail if types don't match the database schema
+- **⚠️ CRITICAL: Update TypeScript types after DDL changes** - This step is MANDATORY:
+  ```bash
+  # Generate updated types from Supabase
+  supabase gen types typescript --linked > frontend/src/types/database.ts
+  ```
+  - **Always run this after deploying any table structure changes**
+  - Vercel deployment will fail if types don't match the database schema
+  - TypeScript compilation errors will occur if types are out of sync
+  - Use direct type paths (e.g., `Database['public']['Tables']['table_name']['Row']`) instead of the `Tables<>` helper to avoid "excessively deep type instantiation" errors
 - **Clean up** - Remove migration file after updating schema.sql (migration is tracked remotely)
 
 ---
