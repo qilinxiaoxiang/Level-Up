@@ -55,7 +55,7 @@ supabase functions deploy
 supabase functions logs revelation
 
 # Test the function (requires authentication token)
-supabase functions invoke revelation --body '{"userMessage":"Feeling energetic today!"}'
+supabase functions invoke revelation --body '{"systemPrompt":"You are Revelation.","userPrompt":"# Current Status\n\n## Time\n- Current local time: 9:00 AM\n"}'
 ```
 
 ## Local Development
@@ -87,7 +87,7 @@ supabase functions serve revelation --env-file supabase/functions/.env
 curl -i --location --request POST 'http://localhost:54321/functions/v1/revelation' \
   --header 'Authorization: Bearer YOUR_SUPABASE_ANON_KEY' \
   --header 'Content-Type: application/json' \
-  --data '{"userMessage":"Test message"}'
+  --data '{"systemPrompt":"You are Revelation.","userPrompt":"# Current Status\n\n## Time\n- Current local time: 9:00 AM\n"}'
 ```
 
 ## Usage from Frontend
@@ -125,7 +125,8 @@ function MyComponent() {
 **Request Body:**
 ```json
 {
-  "userMessage": "Optional user message",
+  "systemPrompt": "Required system prompt",
+  "userPrompt": "Required user prompt",
   "provider": "deepseek" // or "openai"
 }
 ```
@@ -135,10 +136,9 @@ function MyComponent() {
 {
   "success": true,
   "revelation": "Your AI-generated revelation text...",
-  "context": {
-    "timestamp": "2026-01-03T10:30:00.000Z",
-    "timeOfDay": "morning"
-  }
+  "systemPrompt": "Echoed system prompt",
+  "userPrompt": "Echoed user prompt",
+  "suggestionType": "revelation"
 }
 ```
 

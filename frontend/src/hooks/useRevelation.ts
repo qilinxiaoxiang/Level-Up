@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { type RevelationContext } from '../utils/revelationPrompts';
+import { buildRevelationPrompts, type RevelationContext } from '../utils/revelationPrompts';
 import {
   getStartOfDayUTC,
   getEndOfDayUTC,
@@ -130,6 +130,21 @@ export function useRevelation() {
 
     const dailyTitleById = new Map(dailyTasks.map((task) => [task.id, task.title]));
 
+    const { data: lastPomodoros } = await supabase
+      .from('pomodoros')
+      .select('task_id, completed_at')
+      .eq('user_id', userId)
+      .not('completed_at', 'is', null)
+      .order('completed_at', { ascending: false })
+      .limit(2000);
+
+    const lastPomodoroByTask: Record<string, string> = {};
+    (lastPomodoros || []).forEach((p) => {
+      if (p.task_id && p.completed_at && !lastPomodoroByTask[p.task_id]) {
+        lastPomodoroByTask[p.task_id] = p.completed_at;
+      }
+    });
+
     const todayProgress = dailyTasks.map(task => {
       const targetMinutes = task.target_duration_minutes || 60;
       const linkedOnetimeIds = dailyToOnetimeMap[task.id] || [];
@@ -140,6 +155,7 @@ export function useRevelation() {
         targetMinutes,
         completedMinutes,
         isDone: completedMinutes >= targetMinutes,
+        lastCompletedAt: lastPomodoroByTask[task.id] || null,
       };
     });
 
@@ -156,6 +172,7 @@ export function useRevelation() {
         estimated_minutes: t.estimated_minutes,
         completed_minutes: t.completed_minutes,
         linkedDailyTitles,
+        lastCompletedAt: lastPomodoroByTask[t.id] || null,
       };
     });
 
@@ -270,10 +287,12 @@ export function useRevelation() {
       console.log('Collecting context...');
       const context = await collectContext(session.user.id, userMessage);
 
-      // Call the Edge Function (which will generate prompts and call LLM)
-      console.log('Calling Edge Function with context...');
+      const { systemPrompt, userPrompt } = buildRevelationPrompts(context);
+
+      // Call the Edge Function (prompt passthrough)
+      console.log('Calling Edge Function with prompts...');
       const { data, error: functionError } = await supabase.functions.invoke('revelation', {
-        body: { context, provider },
+        body: { systemPrompt, userPrompt, provider, suggestionType: 'revelation' },
       });
 
       if (functionError) {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Dices, Loader2, Zap, History } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { type RevelationContext } from '../../utils/revelationPrompts';
+import { buildNextMovePrompts, type RevelationContext } from '../../utils/revelationPrompts';
 import { useAuth } from '../../hooks/useAuth';
 import {
   getStartOfDayUTC,
@@ -170,6 +170,21 @@ export default function NextTaskSuggestion({ onViewHistory }: NextTaskSuggestion
 
     const dailyTitleById = new Map(dailyTasks.map((task) => [task.id, task.title]));
 
+    const { data: lastPomodoros } = await supabase
+      .from('pomodoros')
+      .select('task_id, completed_at')
+      .eq('user_id', userId)
+      .not('completed_at', 'is', null)
+      .order('completed_at', { ascending: false })
+      .limit(2000);
+
+    const lastPomodoroByTask: Record<string, string> = {};
+    (lastPomodoros || []).forEach((p) => {
+      if (p.task_id && p.completed_at && !lastPomodoroByTask[p.task_id]) {
+        lastPomodoroByTask[p.task_id] = p.completed_at;
+      }
+    });
+
     const todayProgress = dailyTasks.map(task => {
       const targetMinutes = task.target_duration_minutes || 60;
       const linkedOnetimeIds = dailyToOnetimeMap[task.id] || [];
@@ -180,6 +195,7 @@ export default function NextTaskSuggestion({ onViewHistory }: NextTaskSuggestion
         targetMinutes,
         completedMinutes,
         isDone: completedMinutes >= targetMinutes,
+        lastCompletedAt: lastPomodoroByTask[task.id] || null,
       };
     });
 
@@ -195,6 +211,7 @@ export default function NextTaskSuggestion({ onViewHistory }: NextTaskSuggestion
         estimated_minutes: t.estimated_minutes,
         completed_minutes: t.completed_minutes,
         linkedDailyTitles,
+        lastCompletedAt: lastPomodoroByTask[t.id] || null,
       };
     });
 
@@ -291,10 +308,13 @@ export default function NextTaskSuggestion({ onViewHistory }: NextTaskSuggestion
       // Collect context
       const context = await collectContext(session.user.id);
 
-      // Call Edge Function with task_suggestion type
+      const { systemPrompt, userPrompt } = buildNextMovePrompts(context);
+
+      // Call Edge Function with prompts
       const { data, error: functionError } = await supabase.functions.invoke('revelation', {
         body: {
-          context,
+          systemPrompt,
+          userPrompt,
           provider: 'deepseek',
           suggestionType: 'next_task'
         },

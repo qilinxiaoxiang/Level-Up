@@ -1,8 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { callLLM } from './llm-client.ts';
-import { generateRevelationPrompt } from './prompt-generator.ts';
-import { generateTaskSuggestionPrompt } from './task-suggestion-prompt.ts';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -11,18 +9,12 @@ serve(async (req) => {
   }
 
   try {
-    // Parse request body - now accepting context instead of prompts
-    const { context, provider = 'deepseek', suggestionType = 'revelation' } = await req.json();
+    // Parse request body - now accepting prompts instead of context
+    const { systemPrompt, userPrompt, provider = 'deepseek', suggestionType = 'revelation' } = await req.json();
 
-    if (!context) {
-      throw new Error('Missing context');
+    if (!systemPrompt || !userPrompt) {
+      throw new Error('Missing systemPrompt or userPrompt');
     }
-
-    // Generate prompts based on suggestion type
-    console.log('Generating prompts from context...');
-    const { systemPrompt, userPrompt } = suggestionType === 'next_task'
-      ? generateTaskSuggestionPrompt(context)
-      : generateRevelationPrompt(context);
 
     // Call LLM
     console.log('Calling LLM with provider:', provider);

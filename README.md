@@ -183,6 +183,7 @@ npm run build
 - Time statistics using actual duration (Today, Week, Total)
 - Burn-down charts
 - Task archiving
+- Client-side prompt composition for Revelation/Next Move (Edge Function is passthrough)
 - Mobile-responsive UI
 - Icon-based buttons
 
