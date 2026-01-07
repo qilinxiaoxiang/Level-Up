@@ -655,6 +655,7 @@ CREATE TABLE IF NOT EXISTS revelations (
   -- Input
   user_message TEXT,
   provider TEXT NOT NULL DEFAULT 'deepseek', -- 'deepseek' or 'openai'
+  suggestion_type TEXT DEFAULT 'revelation' CHECK (suggestion_type IN ('revelation', 'next_task')),
 
   -- Output
   revelation_text TEXT NOT NULL,
@@ -669,6 +670,7 @@ CREATE TABLE IF NOT EXISTS revelations (
 -- Create indexes for fast lookups
 CREATE INDEX IF NOT EXISTS revelations_user_id_idx ON revelations(user_id);
 CREATE INDEX IF NOT EXISTS revelations_created_at_idx ON revelations(created_at DESC);
+CREATE INDEX IF NOT EXISTS revelations_suggestion_type_idx ON revelations(user_id, suggestion_type, created_at DESC);
 
 -- Enable Row Level Security
 ALTER TABLE revelations ENABLE ROW LEVEL SECURITY;

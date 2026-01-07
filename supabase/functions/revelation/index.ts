@@ -34,33 +34,20 @@ serve(async (req) => {
       provider
     );
 
-    // Return different response based on type
-    if (suggestionType === 'next_task') {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          suggestion: response,
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      );
-    } else {
-      // Return the revelation along with prompts for debugging
-      return new Response(
-        JSON.stringify({
-          success: true,
-          revelation: response,
-          systemPrompt,
-          userPrompt,
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      );
-    }
+    // Return response with prompts for debugging (both types)
+    return new Response(
+      JSON.stringify({
+        success: true,
+        revelation: response,
+        systemPrompt,
+        userPrompt,
+        suggestionType,
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      }
+    );
   } catch (error) {
     console.error('Revelation error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

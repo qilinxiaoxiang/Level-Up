@@ -261,9 +261,21 @@ When making changes to this project, please follow these guidelines:
 
 ### Database Changes
 - **Modify `database/schema.sql` first** - This is the source of truth for the complete schema
-- **Create separate DDL migration files** - Add incremental migration files under `database/` folder with descriptive names (e.g., `database/add-overtime-tracking.sql`)
+- **Create migration file** - Create migration in `supabase/migrations/` with format `YYYYMMDDHHmmss_description.sql`
+- **Deploy to Supabase**:
+  ```bash
+  # Source Supabase token (stored in ~/.zshrc)
+  export SUPABASE_ACCESS_TOKEN=<your_token>
+
+  # Link project (if not already linked)
+  supabase link --project-ref mcizaldoxrxgbpbbeytp
+
+  # Push migration
+  supabase db push --linked
+  ```
+- **Update `database/schema.sql`** - Apply the same changes to the main schema file for new setups
 - **CRITICAL: Update `frontend/src/types/database.ts`** - Always update TypeScript type definitions after DDL changes. Vercel deployment will fail if types don't match the database schema
-- This approach facilitates applying changes to existing databases without re-running the entire schema
+- **Clean up** - Remove migration file after updating schema.sql (migration is tracked remotely)
 
 ---
 

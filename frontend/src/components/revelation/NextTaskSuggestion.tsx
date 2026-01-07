@@ -14,7 +14,10 @@ import { format } from 'date-fns';
 
 interface TaskSuggestionResponse {
   success: boolean;
-  suggestion?: string;
+  revelation?: string;
+  systemPrompt?: string;
+  userPrompt?: string;
+  suggestionType?: string;
   error?: string;
 }
 
@@ -270,11 +273,33 @@ export default function NextTaskSuggestion() {
         throw new Error(response.error || 'Failed to get task suggestion');
       }
 
-      if (!response.suggestion) {
+      if (!response.revelation) {
         throw new Error('No suggestion received');
       }
 
-      setSuggestion(response.suggestion);
+      // Save to revelations table with suggestion_type
+      console.log('Saving task suggestion to database...');
+      const { error: saveError } = await supabase.from('revelations').insert({
+        user_id: session.user.id,
+        user_message: null,
+        provider: 'deepseek',
+        revelation_text: response.revelation,
+        suggestion_type: 'next_task',
+        context_snapshot: {
+          systemPrompt: response.systemPrompt,
+          userPrompt: response.userPrompt,
+          timestamp: new Date().toISOString(),
+          timeOfDay: context.temporal.timeOfDay,
+          streak: context.performance.streak.current,
+        },
+      });
+
+      if (saveError) {
+        console.error('Error saving task suggestion:', saveError);
+        // Don't fail the request if saving fails
+      }
+
+      setSuggestion(response.revelation);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
@@ -287,86 +312,128 @@ export default function NextTaskSuggestion() {
   const parseSuggestion = () => {
     if (!suggestion) return null;
 
-    // Parse format: Task: xxx\nRationale: yyy
-    const lines = suggestion.split('\n');
+    // Parse format: Duration: xxx\nTask: yyy\nMeaning: zzz
+    const lines = suggestion.split('\n').filter(l => l.trim());
+    let duration = '';
     let task = '';
-    let rationale = '';
+    let meaning = '';
+    let currentField = '';
 
     for (const line of lines) {
-      if (line.startsWith('Task:') || line.startsWith('**Task:**')) {
-        task = line.replace(/\*\*Task:\*\*|Task:/, '').trim();
-      } else if (line.startsWith('Rationale:') || line.startsWith('**Rationale:**')) {
-        rationale = line.replace(/\*\*Rationale:\*\*|Rationale:/, '').trim();
-      } else if (task && !rationale && line.trim()) {
-        task += ' ' + line.trim();
-      } else if (rationale && line.trim()) {
-        rationale += ' ' + line.trim();
+      const trimmed = line.trim();
+
+      if (trimmed.startsWith('Duration:') || trimmed.startsWith('**Duration:**')) {
+        duration = trimmed.replace(/\*\*Duration:\*\*|Duration:/, '').trim();
+        currentField = 'duration';
+      } else if (trimmed.startsWith('Task:') || trimmed.startsWith('**Task:**')) {
+        task = trimmed.replace(/\*\*Task:\*\*|Task:/, '').trim();
+        currentField = 'task';
+      } else if (trimmed.startsWith('Meaning:') || trimmed.startsWith('**Meaning:**')) {
+        meaning = trimmed.replace(/\*\*Meaning:\*\*|Meaning:/, '').trim();
+        currentField = 'meaning';
+      } else if (trimmed && currentField === 'task') {
+        task += ' ' + trimmed;
+      } else if (trimmed && currentField === 'meaning') {
+        meaning += ' ' + trimmed;
       }
     }
 
-    return { task, rationale };
+    return { duration, task, meaning };
   };
 
   const parsed = parseSuggestion();
 
   return (
-    <div className="bg-gradient-to-br from-slate-800/50 via-green-900/10 to-slate-800/50 border border-green-500/20 rounded-xl p-5">
-      <div className="flex items-start justify-between gap-4 mb-4">
+    <div className="bg-gradient-to-br from-slate-800/50 via-amber-900/10 to-slate-800/50 border border-amber-500/30 rounded-xl overflow-hidden shadow-xl">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 p-5 pb-4 border-b border-amber-500/20">
         <div className="flex items-center gap-3">
-          <Zap className="text-green-400" size={24} />
+          <div className="relative">
+            <Zap className="text-amber-400" size={28} />
+            <div className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+          </div>
           <div>
-            <h3 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400">
-              Next Task
+            <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-400">
+              Next Move
             </h3>
-            <p className="text-xs text-gray-400">AI-suggested action</p>
+            <p className="text-xs text-amber-400/60">Your next crystallized moment</p>
           </div>
         </div>
         <button
           onClick={rollTask}
           disabled={loading}
-          className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-gray-600 disabled:to-gray-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 disabled:from-gray-600 disabled:to-gray-600 text-white text-sm font-bold rounded-lg transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 shadow-lg"
         >
           {loading ? (
             <>
-              <Loader2 size={16} className="animate-spin" />
+              <Loader2 size={18} className="animate-spin" />
               <span className="hidden sm:inline">Rolling...</span>
             </>
           ) : (
             <>
-              <Dices size={16} />
-              <span className="hidden sm:inline">Roll Task</span>
+              <Dices size={18} />
+              <span className="hidden sm:inline">Roll</span>
               <span className="sm:hidden">Roll</span>
             </>
           )}
         </button>
       </div>
 
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm">
-          {error}
-        </div>
-      )}
-
-      {!suggestion && !error && !loading && (
-        <div className="text-center py-6 text-gray-400 text-sm">
-          Roll the dice to get an AI-suggested task based on your goals
-        </div>
-      )}
-
-      {parsed && (
-        <div className="space-y-3">
-          <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-            <p className="text-xs text-green-400 font-semibold mb-1">SUGGESTED TASK</p>
-            <p className="text-white font-medium">{parsed.task}</p>
+      {/* Content */}
+      <div className="p-5">
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm">
+            {error}
           </div>
-          {parsed.rationale && (
-            <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-              <p className="text-xs text-gray-400 font-semibold mb-1">RATIONALE</p>
-              <p className="text-gray-300 text-sm leading-relaxed">{parsed.rationale}</p>
+        )}
+
+        {!suggestion && !error && !loading && (
+          <div className="text-center py-8">
+            <div className="inline-block p-4 bg-amber-500/10 rounded-full mb-4">
+              <Dices size={32} className="text-amber-400" />
             </div>
-          )}
-        </div>
-      )}
+            <p className="text-gray-400 text-sm leading-relaxed max-w-md mx-auto">
+              Roll the dice to illuminate your next meaningful action — a task that transforms ambition into reality
+            </p>
+          </div>
+        )}
+
+        {parsed && (
+          <div className="space-y-4">
+            {/* Duration Badge */}
+            {parsed.duration && (
+              <div className="flex justify-center">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/20 border border-amber-500/40 rounded-full">
+                  <Zap size={14} className="text-amber-400" />
+                  <span className="text-amber-300 font-bold text-sm">{parsed.duration}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Task */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 rounded-xl blur-xl" />
+              <div className="relative bg-gradient-to-br from-amber-500/20 to-yellow-500/10 border border-amber-500/40 rounded-xl p-5">
+                <div className="flex items-start gap-3">
+                  <div className="mt-1 w-1.5 h-1.5 bg-amber-400 rounded-full flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-xs text-amber-400/80 font-semibold mb-2 tracking-wider uppercase">The Action</p>
+                    <p className="text-white font-medium text-base leading-relaxed">{parsed.task}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Meaning */}
+            {parsed.meaning && (
+              <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
+                <p className="text-xs text-gray-500 font-semibold mb-3 tracking-wider uppercase">The Meaning</p>
+                <p className="text-gray-300 text-sm leading-relaxed italic">{parsed.meaning}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
