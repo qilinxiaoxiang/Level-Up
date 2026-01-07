@@ -47,20 +47,14 @@ export default function NextTaskSuggestion({ onViewHistory }: NextTaskSuggestion
         .eq('user_id', session.user.id)
         .eq('suggestion_type', 'next_task')
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
 
       if (fetchError) {
-        if (fetchError.code === 'PGRST116') {
-          // No rows found - this is fine
-          setSuggestion(null);
-        } else {
-          console.error('Error fetching latest suggestion:', fetchError);
-        }
+        console.error('Error fetching latest suggestion:', fetchError);
         return;
       }
 
-      setSuggestion(data.revelation_text);
+      setSuggestion(data?.[0]?.revelation_text || null);
     } catch (err) {
       console.error('Failed to fetch latest suggestion:', err);
     } finally {
@@ -74,16 +68,18 @@ export default function NextTaskSuggestion({ onViewHistory }: NextTaskSuggestion
       .from('user_profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .limit(1);
 
-    if (!profileData) {
+    if (!profileData?.[0]) {
       throw new Error('Profile not found');
     }
 
+    const profile = profileData[0];
+
     // Calculate temporal information
     const now = new Date();
-    const dayCutTimezone = profileData.timezone_name || 'Asia/Shanghai';
-    const dayCutTime = profileData.daily_reset_time || '00:00:00';
+    const dayCutTimezone = profile.timezone_name || 'Asia/Shanghai';
+    const dayCutTime = profile.daily_reset_time || '00:00:00';
 
     setTimezoneName(dayCutTimezone);
     setDayCutOffsetMinutes(parseDailyResetTimeToMinutes(dayCutTime));
@@ -269,8 +265,8 @@ export default function NextTaskSuggestion({ onViewHistory }: NextTaskSuggestion
       },
       performance: {
         streak: {
-          current: profileData.current_streak || 0,
-          longest: profileData.longest_streak || 0,
+          current: profile.current_streak || 0,
+          longest: profile.longest_streak || 0,
         },
         last7Days: {
           totalCount,
