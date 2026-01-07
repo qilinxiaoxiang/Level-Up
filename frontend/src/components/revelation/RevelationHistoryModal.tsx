@@ -12,34 +12,63 @@ type Revelation = Tables<'revelations'>;
 export default function RevelationHistoryModal({ onClose }: RevelationHistoryModalProps) {
   const [revelations, setRevelations] = useState<Revelation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
+  const PAGE_SIZE = 3;
 
   useEffect(() => {
-    fetchRevelations();
+    fetchRevelations(true);
   }, []);
 
-  const fetchRevelations = async () => {
-    setLoading(true);
+  const fetchRevelations = async (isInitial = false) => {
+    if (isInitial) {
+      setLoading(true);
+      setOffset(0);
+    } else {
+      setLoadingMore(true);
+    }
+
     try {
-      const { data, error } = await supabase
+      const currentOffset = isInitial ? 0 : offset;
+      const { data, error, count } = await supabase
         .from('revelations')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(currentOffset, currentOffset + PAGE_SIZE - 1);
 
       if (error) {
         console.error('Error fetching revelations:', error);
         return;
       }
 
-      setRevelations(data || []);
-      // Auto-expand the first (latest) revelation
-      if (data && data.length > 0) {
-        setExpandedId(data[0].id);
+      if (isInitial) {
+        setRevelations(data || []);
+        // Auto-expand the first (latest) revelation
+        if (data && data.length > 0) {
+          setExpandedId(data[0].id);
+        }
+      } else {
+        setRevelations(prev => [...prev, ...(data || [])]);
       }
+
+      setOffset(currentOffset + (data?.length || 0));
+      setHasMore((data?.length || 0) === PAGE_SIZE && (count || 0) > currentOffset + PAGE_SIZE);
     } catch (err) {
       console.error('Failed to fetch revelations:', err);
     } finally {
-      setLoading(false);
+      if (isInitial) {
+        setLoading(false);
+      } else {
+        setLoadingMore(false);
+      }
+    }
+  };
+
+  const loadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchRevelations(false);
     }
   };
 
@@ -182,126 +211,152 @@ export default function RevelationHistoryModal({ onClose }: RevelationHistoryMod
               <p className="text-gray-400">No revelations yet. Seek your first revelation!</p>
             </div>
           ) : (
-            revelations.map((revelation) => {
-              const isExpanded = expandedId === revelation.id;
-              const sections = parseRevelationSections(revelation.revelation_text);
-              const previewSection = sections[0];
+            <>
+              {revelations.map((revelation) => {
+                const isExpanded = expandedId === revelation.id;
+                const sections = parseRevelationSections(revelation.revelation_text);
+                const previewSection = sections[0];
 
-              return (
-                <div
-                  key={revelation.id}
-                  className="bg-slate-800/50 border border-purple-500/20 rounded-xl overflow-hidden"
-                >
-                  {/* Revelation Header */}
+                return (
                   <div
-                    className="flex items-center justify-between p-4 cursor-pointer hover:bg-purple-900/10 transition-colors"
-                    onClick={() => setExpandedId(isExpanded ? null : revelation.id)}
+                    key={revelation.id}
+                    className="bg-slate-800/50 border border-purple-500/20 rounded-xl overflow-hidden"
                   >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-base font-medium text-purple-300">
-                          {new Date(revelation.created_at).toLocaleString()}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          ({revelation.provider})
-                        </span>
-                      </div>
-                      {!isExpanded && revelation.context_snapshot && (
-                        <div className="flex items-center gap-3 mt-2 text-sm text-gray-500">
-                          {(revelation.context_snapshot as any).streak && (
-                            <span>Streak: {(revelation.context_snapshot as any).streak}</span>
-                          )}
-                          {(revelation.context_snapshot as any).timeOfDay && (
-                            <span>Time: {(revelation.context_snapshot as any).timeOfDay}</span>
-                          )}
+                    {/* Revelation Header */}
+                    <div
+                      className="flex items-center justify-between p-4 cursor-pointer hover:bg-purple-900/10 transition-colors"
+                      onClick={() => setExpandedId(isExpanded ? null : revelation.id)}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-base font-medium text-purple-300">
+                            {new Date(revelation.created_at).toLocaleString()}
+                          </span>
+                          <span className="text-sm text-gray-500">
+                            ({revelation.provider})
+                          </span>
                         </div>
-                      )}
-                    </div>
-                    {isExpanded ? (
-                      <ChevronUp className="text-gray-400" size={20} />
-                    ) : (
-                      <ChevronDown className="text-gray-400" size={20} />
-                    )}
-                  </div>
-
-                  {/* Revelation Content */}
-                  {isExpanded && (
-                    <div className="px-6 pb-6 space-y-6">
-                      {/* Full Prompts - For Debugging */}
-                      {revelation.context_snapshot && (revelation.context_snapshot as any).systemPrompt && (
-                        <details className="bg-slate-900/50 border border-purple-500/10 rounded-lg">
-                          <summary className="px-4 py-3 cursor-pointer text-base font-medium text-purple-300 hover:text-purple-200">
-                            🐛 Debug: View Full Prompts Sent to LLM (Click to expand)
-                          </summary>
-                          <div className="px-4 pb-4 space-y-4">
-                            <div>
-                              <p className="text-sm text-gray-400 mb-2 font-bold">System Prompt:</p>
-                              <pre className="text-sm text-gray-300 bg-slate-800 p-3 rounded overflow-x-auto whitespace-pre-wrap">
-                                {(revelation.context_snapshot as any).systemPrompt}
-                              </pre>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-400 mb-2 font-bold">User Prompt (Full Context):</p>
-                              <pre className="text-sm text-gray-300 bg-slate-800 p-3 rounded overflow-x-auto whitespace-pre-wrap max-h-96 overflow-y-auto">
-                                {(revelation.context_snapshot as any).userPrompt}
-                              </pre>
-                            </div>
-                          </div>
-                        </details>
-                      )}
-
-                      {/* Context Summary */}
-                      {revelation.context_snapshot && (
-                        <div className="bg-slate-900/50 border border-purple-500/10 rounded-lg p-3">
-                          <p className="text-sm text-gray-400 mb-2">Context summary:</p>
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            {(revelation.context_snapshot as any).streak !== undefined && (
-                              <div>
-                                <span className="text-gray-500">Streak: </span>
-                                <span className="text-purple-300">{(revelation.context_snapshot as any).streak} days</span>
-                              </div>
+                        {!isExpanded && revelation.context_snapshot && (
+                          <div className="flex items-center gap-3 mt-2 text-sm text-gray-500">
+                            {(revelation.context_snapshot as any).streak && (
+                              <span>Streak: {(revelation.context_snapshot as any).streak}</span>
                             )}
                             {(revelation.context_snapshot as any).timeOfDay && (
-                              <div>
-                                <span className="text-gray-500">Time of Day: </span>
-                                <span className="text-purple-300">{(revelation.context_snapshot as any).timeOfDay}</span>
-                              </div>
-                            )}
-                            {(revelation.context_snapshot as any).tasksCompleted !== undefined && (
-                              <div>
-                                <span className="text-gray-500">Daily Tasks: </span>
-                                <span className="text-purple-300">
-                                  {(revelation.context_snapshot as any).tasksCompleted}/{(revelation.context_snapshot as any).totalDailyTasks} complete
-                                </span>
-                              </div>
+                              <span>Time: {(revelation.context_snapshot as any).timeOfDay}</span>
                             )}
                           </div>
-                        </div>
+                        )}
+                      </div>
+                      {isExpanded ? (
+                        <ChevronUp className="text-gray-400" size={20} />
+                      ) : (
+                        <ChevronDown className="text-gray-400" size={20} />
                       )}
+                    </div>
 
-                      {/* Revelation Sections */}
-                      {sections.map((section, idx) => {
-                        const isSeedAction = section.title.toLowerCase() === 'seed action';
-                        return (
-                          <div key={idx} className="space-y-2">
-                            <h4 className="text-lg font-semibold text-purple-300">
-                              {section.title}
-                            </h4>
-                            <div
-                              className={isSeedAction
-                                ? 'rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-3 space-y-1'
-                                : 'pl-2'}
-                            >
-                              {renderMarkdownContent(section.content)}
+                    {/* Revelation Content */}
+                    {isExpanded && (
+                      <div className="px-6 pb-6 space-y-6">
+                        {/* Full Prompts - For Debugging */}
+                        {revelation.context_snapshot && (revelation.context_snapshot as any).systemPrompt && (
+                          <details className="bg-slate-900/50 border border-purple-500/10 rounded-lg">
+                            <summary className="px-4 py-3 cursor-pointer text-base font-medium text-purple-300 hover:text-purple-200">
+                              🐛 Debug: View Full Prompts Sent to LLM (Click to expand)
+                            </summary>
+                            <div className="px-4 pb-4 space-y-4">
+                              <div>
+                                <p className="text-sm text-gray-400 mb-2 font-bold">System Prompt:</p>
+                                <pre className="text-sm text-gray-300 bg-slate-800 p-3 rounded overflow-x-auto whitespace-pre-wrap">
+                                  {(revelation.context_snapshot as any).systemPrompt}
+                                </pre>
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-400 mb-2 font-bold">User Prompt (Full Context):</p>
+                                <pre className="text-sm text-gray-300 bg-slate-800 p-3 rounded overflow-x-auto whitespace-pre-wrap max-h-96 overflow-y-auto">
+                                  {(revelation.context_snapshot as any).userPrompt}
+                                </pre>
+                              </div>
+                            </div>
+                          </details>
+                        )}
+
+                        {/* Context Summary */}
+                        {revelation.context_snapshot && (
+                          <div className="bg-slate-900/50 border border-purple-500/10 rounded-lg p-3">
+                            <p className="text-sm text-gray-400 mb-2">Context summary:</p>
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              {(revelation.context_snapshot as any).streak !== undefined && (
+                                <div>
+                                  <span className="text-gray-500">Streak: </span>
+                                  <span className="text-purple-300">{(revelation.context_snapshot as any).streak} days</span>
+                                </div>
+                              )}
+                              {(revelation.context_snapshot as any).timeOfDay && (
+                                <div>
+                                  <span className="text-gray-500">Time of Day: </span>
+                                  <span className="text-purple-300">{(revelation.context_snapshot as any).timeOfDay}</span>
+                                </div>
+                              )}
+                              {(revelation.context_snapshot as any).tasksCompleted !== undefined && (
+                                <div>
+                                  <span className="text-gray-500">Daily Tasks: </span>
+                                  <span className="text-purple-300">
+                                    {(revelation.context_snapshot as any).tasksCompleted}/{(revelation.context_snapshot as any).totalDailyTasks} complete
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                        )}
+
+                        {/* Revelation Sections */}
+                        {sections.map((section, idx) => {
+                          const isSeedAction = section.title.toLowerCase() === 'seed action';
+                          return (
+                            <div key={idx} className="space-y-2">
+                              <h4 className="text-lg font-semibold text-purple-300">
+                                {section.title}
+                              </h4>
+                              <div
+                                className={isSeedAction
+                                  ? 'rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-3 space-y-1'
+                                  : 'pl-2'}
+                              >
+                                {renderMarkdownContent(section.content)}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Load More Button */}
+              {hasMore && (
+                <div className="flex justify-center pt-2">
+                  <button
+                    type="button"
+                    onClick={loadMore}
+                    disabled={loadingMore}
+                    className="px-6 py-3 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-300 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {loadingMore ? (
+                      <>
+                        <Loader2 className="animate-spin" size={16} />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown size={16} />
+                        Load More
+                      </>
+                    )}
+                  </button>
                 </div>
-              );
-            })
+              )}
+            </>
           )}
         </div>
       </div>
