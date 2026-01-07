@@ -28,15 +28,14 @@ export default function LatestRevelation({ onViewHistory, onSeekRevelation, refr
         .select('*')
         .eq('suggestion_type', 'revelation')
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
 
       if (error) {
         console.error('Error fetching latest revelation:', error);
         return;
       }
 
-      setRevelation(data);
+      setRevelation(data?.[0] || null);
       setExpanded(true); // Auto-expand new revelations
     } catch (err) {
       console.error('Failed to fetch revelation:', err);
