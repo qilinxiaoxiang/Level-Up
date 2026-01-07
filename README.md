@@ -259,6 +259,19 @@ When making changes to this project, please follow these guidelines:
 - **Update existing documentation** - When features change, update the corresponding sections in README.md
 - Keep change descriptions brief but informative
 
+### TypeScript & Supabase Best Practices
+- **Avoid `.single()` in Supabase queries** - Use array access `data?.[0]` instead to prevent "excessively deep type instantiation" errors
+  ```typescript
+  // ❌ Avoid - can cause TypeScript compilation errors
+  const { data } = await supabase.from('table').select('*').single();
+
+  // ✅ Prefer - safer type instantiation
+  const { data } = await supabase.from('table').select('*').limit(1);
+  const record = data?.[0];
+  ```
+- **Use direct type paths** - Prefer `Database['public']['Tables']['table_name']['Row']` over `Tables<'table_name'>` helper
+- **Test TypeScript compilation** - Run `npx tsc --noEmit` before committing to catch type errors early
+
 ### Database Changes
 - **Modify `database/schema.sql` first** - This is the source of truth for the complete schema
 - **Create migration file** - Create migration in `supabase/migrations/` with format `YYYYMMDDHHmmss_description.sql`
