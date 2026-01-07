@@ -140,12 +140,12 @@ Before responding, verify internally:
 - Sleep has a clear stop point
 - Total scheduled time ≤ available hours`;
 
-  const userPrompt = buildUserPrompt(context);
+  const userPrompt = buildRevelationUserPrompt(context);
 
   return { systemPrompt, userPrompt };
 }
 
-function buildUserPrompt(ctx: RevelationContext): string {
+export function buildRevelationUserPrompt(ctx: RevelationContext): string {
   let prompt = '# Current Status\n\n';
 
   // Time
