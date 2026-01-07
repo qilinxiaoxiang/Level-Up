@@ -26,6 +26,7 @@ export default function LatestRevelation({ onViewHistory, onSeekRevelation, refr
       const { data, error } = await supabase
         .from('revelations')
         .select('*')
+        .eq('suggestion_type', 'revelation')
         .order('created_at', { ascending: false })
         .limit(1)
         .single();

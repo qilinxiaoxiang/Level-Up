@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Dices, Loader2, Zap } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Dices, Loader2, Zap, History } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { type RevelationContext } from '../../utils/revelationPrompts';
 import { useAuth } from '../../hooks/useAuth';
@@ -21,11 +21,52 @@ interface TaskSuggestionResponse {
   error?: string;
 }
 
-export default function NextTaskSuggestion() {
+interface NextTaskSuggestionProps {
+  onViewHistory: () => void;
+}
+
+export default function NextTaskSuggestion({ onViewHistory }: NextTaskSuggestionProps) {
   const [suggestion, setSuggestion] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { profile } = useAuth();
+
+  useEffect(() => {
+    fetchLatestSuggestion();
+  }, []);
+
+  const fetchLatestSuggestion = async () => {
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data, error: fetchError } = await supabase
+        .from('revelations')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('suggestion_type', 'next_task')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (fetchError) {
+        if (fetchError.code === 'PGRST116') {
+          // No rows found - this is fine
+          setSuggestion(null);
+        } else {
+          console.error('Error fetching latest suggestion:', fetchError);
+        }
+        return;
+      }
+
+      setSuggestion(data.revelation_text);
+    } catch (err) {
+      console.error('Failed to fetch latest suggestion:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const collectContext = async (userId: string): Promise<RevelationContext> => {
     // Fetch user profile
@@ -359,24 +400,32 @@ export default function NextTaskSuggestion() {
             <p className="text-xs text-amber-400/60">Your next crystallized moment</p>
           </div>
         </div>
-        <button
-          onClick={rollTask}
-          disabled={loading}
-          className="px-4 py-2 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 disabled:from-gray-600 disabled:to-gray-600 text-white text-sm font-bold rounded-lg transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 shadow-lg"
-        >
-          {loading ? (
-            <>
-              <Loader2 size={18} className="animate-spin" />
-              <span className="hidden sm:inline">Rolling...</span>
-            </>
-          ) : (
-            <>
-              <Dices size={18} />
-              <span className="hidden sm:inline">Roll</span>
-              <span className="sm:hidden">Roll</span>
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={rollTask}
+            disabled={loading}
+            className="px-4 py-2 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 disabled:from-gray-600 disabled:to-gray-600 text-white text-sm font-bold rounded-lg transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 shadow-lg"
+          >
+            {loading ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                <span className="hidden sm:inline">Rolling...</span>
+              </>
+            ) : (
+              <>
+                <Dices size={18} />
+                <span className="hidden sm:inline">Roll</span>
+                <span className="sm:hidden">Roll</span>
+              </>
+            )}
+          </button>
+          <button
+            onClick={onViewHistory}
+            className="p-2 bg-slate-700/50 hover:bg-slate-600/50 text-gray-300 text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5"
+          >
+            <History size={16} />
+          </button>
+        </div>
       </div>
 
       {/* Content */}
@@ -400,24 +449,22 @@ export default function NextTaskSuggestion() {
 
         {parsed && (
           <div className="space-y-4">
-            {/* Duration Badge */}
-            {parsed.duration && (
-              <div className="flex justify-center">
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/20 border border-amber-500/40 rounded-full">
-                  <Zap size={14} className="text-amber-400" />
-                  <span className="text-amber-300 font-bold text-sm">{parsed.duration}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Task */}
+            {/* Task with Duration */}
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 rounded-xl blur-xl" />
               <div className="relative bg-gradient-to-br from-amber-500/20 to-yellow-500/10 border border-amber-500/40 rounded-xl p-5">
                 <div className="flex items-start gap-3">
                   <div className="mt-1 w-1.5 h-1.5 bg-amber-400 rounded-full flex-shrink-0" />
                   <div className="flex-1">
-                    <p className="text-xs text-amber-400/80 font-semibold mb-2 tracking-wider uppercase">The Action</p>
+                    <div className="flex items-center gap-3 mb-3">
+                      <p className="text-xs text-amber-400/80 font-semibold tracking-wider uppercase">The Action</p>
+                      {parsed.duration && (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-amber-500/20 border border-amber-500/40 rounded-full">
+                          <Zap size={12} className="text-amber-400" />
+                          <span className="text-amber-300 font-bold text-xs">{parsed.duration}</span>
+                        </div>
+                      )}
+                    </div>
                     <p className="text-white font-medium text-base leading-relaxed">{parsed.task}</p>
                   </div>
                 </div>

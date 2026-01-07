@@ -85,6 +85,7 @@ export default function Goals() {
   const [showTodayPomodoros, setShowTodayPomodoros] = useState(false);
   const [showRevelation, setShowRevelation] = useState(false);
   const [showRevelationHistory, setShowRevelationHistory] = useState(false);
+  const [showNextMoveHistory, setShowNextMoveHistory] = useState(false);
   const [revelationRefreshTrigger, setRevelationRefreshTrigger] = useState(0);
 
   // Request notification permission on page load
@@ -440,7 +441,7 @@ export default function Goals() {
         />
 
         {/* Next Task Suggestion */}
-        <NextTaskSuggestion />
+        <NextTaskSuggestion onViewHistory={() => setShowNextMoveHistory(true)} />
 
         {/* Active Pomodoro Card */}
         {activeSession && tasks.find((t) => t.id === activeSession.task_id) && (
@@ -894,7 +895,18 @@ export default function Goals() {
 
       {/* Revelation History Modal */}
       {showRevelationHistory && (
-        <RevelationHistoryModal onClose={() => setShowRevelationHistory(false)} />
+        <RevelationHistoryModal
+          onClose={() => setShowRevelationHistory(false)}
+          suggestionType="revelation"
+        />
+      )}
+
+      {/* Next Move History Modal */}
+      {showNextMoveHistory && (
+        <RevelationHistoryModal
+          onClose={() => setShowNextMoveHistory(false)}
+          suggestionType="next_task"
+        />
       )}
     </div>
   );

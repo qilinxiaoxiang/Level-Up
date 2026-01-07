@@ -5,11 +5,15 @@ import type { Tables } from '../../types/database';
 
 interface RevelationHistoryModalProps {
   onClose: () => void;
+  suggestionType?: 'revelation' | 'next_task';
 }
 
 type Revelation = Tables<'revelations'>;
 
-export default function RevelationHistoryModal({ onClose }: RevelationHistoryModalProps) {
+export default function RevelationHistoryModal({
+  onClose,
+  suggestionType = 'revelation',
+}: RevelationHistoryModalProps) {
   const [revelations, setRevelations] = useState<Revelation[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -35,6 +39,7 @@ export default function RevelationHistoryModal({ onClose }: RevelationHistoryMod
       const { data, error, count } = await supabase
         .from('revelations')
         .select('*', { count: 'exact' })
+        .eq('suggestion_type', suggestionType)
         .order('created_at', { ascending: false })
         .range(currentOffset, currentOffset + PAGE_SIZE - 1);
 
@@ -182,10 +187,10 @@ export default function RevelationHistoryModal({ onClose }: RevelationHistoryMod
             <Sparkles className="text-purple-400" size={28} />
             <div>
               <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
-                Revelation History
+                {suggestionType === 'next_task' ? 'Next Move History' : 'Revelation History'}
               </h2>
               <p className="text-xs text-gray-400">
-                {revelations.length} {revelations.length === 1 ? 'revelation' : 'revelations'} received
+                {revelations.length} {revelations.length === 1 ? (suggestionType === 'next_task' ? 'move' : 'revelation') : (suggestionType === 'next_task' ? 'moves' : 'revelations')} received
               </p>
             </div>
           </div>
@@ -208,7 +213,11 @@ export default function RevelationHistoryModal({ onClose }: RevelationHistoryMod
           ) : revelations.length === 0 ? (
             <div className="text-center py-12">
               <Sparkles className="text-purple-400 mx-auto mb-4" size={48} />
-              <p className="text-gray-400">No revelations yet. Seek your first revelation!</p>
+              <p className="text-gray-400">
+                {suggestionType === 'next_task'
+                  ? 'No moves yet. Roll your first next move!'
+                  : 'No revelations yet. Seek your first revelation!'}
+              </p>
             </div>
           ) : (
             <>
