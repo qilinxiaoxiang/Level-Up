@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { callLLM } from './llm-client.ts';
+import { generateRevelationPrompt } from './prompt-generator.ts';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -9,14 +10,18 @@ serve(async (req) => {
   }
 
   try {
-    // Parse request body
-    const { systemPrompt, userPrompt, provider = 'deepseek' } = await req.json();
+    // Parse request body - now accepting context instead of prompts
+    const { context, provider = 'deepseek' } = await req.json();
 
-    if (!systemPrompt || !userPrompt) {
-      throw new Error('Missing systemPrompt or userPrompt');
+    if (!context) {
+      throw new Error('Missing context');
     }
 
-    // Call LLM - this is the ONLY job of this Edge Function
+    // Generate prompts from context
+    console.log('Generating prompts from context...');
+    const { systemPrompt, userPrompt } = generateRevelationPrompt(context);
+
+    // Call LLM
     console.log('Calling LLM with provider:', provider);
     const revelation = await callLLM(
       [
@@ -26,11 +31,13 @@ serve(async (req) => {
       provider
     );
 
-    // Return the revelation
+    // Return the revelation along with prompts for debugging
     return new Response(
       JSON.stringify({
         success: true,
         revelation,
+        systemPrompt,
+        userPrompt,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

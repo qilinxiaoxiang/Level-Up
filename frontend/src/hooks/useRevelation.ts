@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { generateRevelationPrompts, type RevelationContext } from '../utils/revelationPrompts';
+import { type RevelationContext } from '../utils/revelationPrompts';
 import {
   getStartOfDayUTC,
   getEndOfDayUTC,
@@ -13,6 +13,8 @@ import { format, formatDistanceToNow } from 'date-fns';
 interface RevelationResponse {
   success: boolean;
   revelation?: string;
+  systemPrompt?: string;
+  userPrompt?: string;
   error?: string;
 }
 
@@ -268,14 +270,10 @@ export function useRevelation() {
       console.log('Collecting context...');
       const context = await collectContext(session.user.id, userMessage);
 
-      // Generate prompts
-      console.log('Generating prompts...');
-      const { systemPrompt, userPrompt } = generateRevelationPrompts(context);
-
-      // Call the Edge Function (only for LLM API call)
-      console.log('Calling LLM via Edge Function...');
+      // Call the Edge Function (which will generate prompts and call LLM)
+      console.log('Calling Edge Function with context...');
       const { data, error: functionError } = await supabase.functions.invoke('revelation', {
-        body: { systemPrompt, userPrompt, provider },
+        body: { context, provider },
       });
 
       if (functionError) {
@@ -293,7 +291,7 @@ export function useRevelation() {
         throw new Error('No revelation received');
       }
 
-      // Save to database with full prompts
+      // Save to database with full prompts (returned from Edge Function)
       console.log('Saving revelation to database...');
       const { error: saveError } = await supabase.from('revelations').insert({
         user_id: session.user.id,
@@ -301,8 +299,8 @@ export function useRevelation() {
         provider,
         revelation_text: revelationText,
         context_snapshot: {
-          systemPrompt,
-          userPrompt,
+          systemPrompt: response.systemPrompt,
+          userPrompt: response.userPrompt,
           timestamp: new Date().toISOString(),
           timeOfDay: context.temporal.timeOfDay,
           streak: context.performance.streak.current,
