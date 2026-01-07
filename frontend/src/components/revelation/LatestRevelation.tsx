@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Sparkles, History, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import type { Tables } from '../../types/database';
+import type { Database } from '../../types/database';
 
 interface LatestRevelationProps {
   onViewHistory: () => void;
@@ -9,7 +9,7 @@ interface LatestRevelationProps {
   refreshTrigger?: number;
 }
 
-type Revelation = Tables<'revelations'>;
+type Revelation = Database['public']['Tables']['revelations']['Row'];
 
 export default function LatestRevelation({ onViewHistory, onSeekRevelation, refreshTrigger }: LatestRevelationProps) {
   const [revelation, setRevelation] = useState<Revelation | null>(null);
