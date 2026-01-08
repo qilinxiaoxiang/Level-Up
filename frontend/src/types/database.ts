@@ -243,7 +243,6 @@ export type Database = {
           enemy_type: string | null
           focus_rating: number | null
           id: string
-          item_dropped_id: string | null
           overtime_minutes: number | null
           pause_periods: Json | null
           started_at: string
@@ -261,7 +260,6 @@ export type Database = {
           enemy_type?: string | null
           focus_rating?: number | null
           id?: string
-          item_dropped_id?: string | null
           overtime_minutes?: number | null
           pause_periods?: Json | null
           started_at: string
@@ -279,7 +277,6 @@ export type Database = {
           enemy_type?: string | null
           focus_rating?: number | null
           id?: string
-          item_dropped_id?: string | null
           overtime_minutes?: number | null
           pause_periods?: Json | null
           started_at?: string
@@ -367,7 +364,6 @@ export type Database = {
           is_locked: boolean | null
           priority: string | null
           required_item_id: string | null
-          special_item_id: string | null
           target_duration_minutes: number | null
           task_type: string
           title: string
@@ -393,7 +389,6 @@ export type Database = {
           is_locked?: boolean | null
           priority?: string | null
           required_item_id?: string | null
-          special_item_id?: string | null
           target_duration_minutes?: number | null
           task_type: string
           title: string
@@ -419,7 +414,6 @@ export type Database = {
           is_locked?: boolean | null
           priority?: string | null
           required_item_id?: string | null
-          special_item_id?: string | null
           target_duration_minutes?: number | null
           task_type?: string
           title?: string
@@ -504,13 +498,11 @@ export type Database = {
       user_profiles: {
         Row: {
           created_at: string | null
-          current_hp: number | null
           current_streak: number | null
           daily_reset_time: string | null
           id: string
           last_streak_date: string | null
           longest_streak: number | null
-          max_hp: number | null
           pomodoro_duration: number | null
           rest_credits: number | null
           timezone_name: string | null
@@ -520,13 +512,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          current_hp?: number | null
           current_streak?: number | null
           daily_reset_time?: string | null
           id: string
           last_streak_date?: string | null
           longest_streak?: number | null
-          max_hp?: number | null
           pomodoro_duration?: number | null
           rest_credits?: number | null
           timezone_name?: string | null
@@ -536,13 +526,11 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          current_hp?: number | null
           current_streak?: number | null
           daily_reset_time?: string | null
           id?: string
           last_streak_date?: string | null
           longest_streak?: number | null
-          max_hp?: number | null
           pomodoro_duration?: number | null
           rest_credits?: number | null
           timezone_name?: string | null
@@ -557,10 +545,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      add_rewards: {
-        Args: { gold_amount: number; user_uuid: string; xp_amount: number }
-        Returns: Json
-      }
       get_active_goals: {
         Args: { user_uuid: string }
         Returns: {
@@ -569,10 +553,6 @@ export type Database = {
           goal_type: string
           target_date: string
         }[]
-      }
-      update_hp: {
-        Args: { hp_change: number; user_uuid: string }
-        Returns: number
       }
     }
     Enums: {

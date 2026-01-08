@@ -1,4 +1,4 @@
--- Level Up - Database Schema
+-- Revelation - Database Schema
 -- PostgreSQL / Supabase
 --
 -- This file contains all table definitions, indexes, triggers, and functions
@@ -18,15 +18,6 @@ CREATE TABLE user_profiles (
   id UUID PRIMARY KEY,
   username TEXT UNIQUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-
-  -- Progress
-  current_xp INTEGER DEFAULT 0,
-  total_xp INTEGER DEFAULT 0,
-  gold INTEGER DEFAULT 0,
-
-  -- HP System
-  current_hp INTEGER DEFAULT 100,
-  max_hp INTEGER DEFAULT 100,
 
   -- Preferences
   pomodoro_duration INTEGER DEFAULT 25, -- minutes
@@ -127,11 +118,6 @@ CREATE TABLE tasks (
   estimated_minutes INTEGER,
   completed_pomodoros INTEGER DEFAULT 0,
   completed_minutes INTEGER DEFAULT 0,
-
-  -- Rewards
-  gold_reward INTEGER DEFAULT 10,
-  xp_reward INTEGER DEFAULT 20,
-  special_item_id UUID, -- optional unlock item
 
   -- Status
   is_active BOOLEAN DEFAULT true,
@@ -259,11 +245,6 @@ CREATE TABLE pomodoros (
   -- Focus & Results
   focus_rating INTEGER CHECK (focus_rating >= 1 AND focus_rating <= 5),
   accomplishment_note TEXT,
-
-  -- Rewards
-  gold_earned INTEGER DEFAULT 0,
-  xp_earned INTEGER DEFAULT 0,
-  item_dropped_id UUID,
 
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -497,59 +478,6 @@ CREATE TRIGGER update_user_equipment_updated_at
 -- ============================================================
 -- DATABASE FUNCTIONS
 -- ============================================================
-
--- Function to add rewards
-CREATE OR REPLACE FUNCTION add_rewards(
-  user_uuid UUID,
-  gold_amount INTEGER,
-  xp_amount INTEGER
-)
-RETURNS JSONB AS $$
-DECLARE
-  new_xp INTEGER;
-BEGIN
-  -- Add gold and XP
-  UPDATE user_profiles
-  SET
-    gold = gold + gold_amount,
-    current_xp = current_xp + xp_amount,
-    total_xp = total_xp + xp_amount
-  WHERE id = user_uuid
-  RETURNING current_xp INTO new_xp;
-
-  -- Return result
-  RETURN jsonb_build_object(
-    'leveled_up', false,
-    'current_xp', new_xp
-  );
-END;
-$$ LANGUAGE plpgsql;
-
--- Function to update HP
-CREATE OR REPLACE FUNCTION update_hp(
-  user_uuid UUID,
-  hp_change INTEGER
-)
-RETURNS INTEGER AS $$
-DECLARE
-  new_hp INTEGER;
-  max_hp_value INTEGER;
-BEGIN
-  SELECT current_hp + hp_change, max_hp
-  INTO new_hp, max_hp_value
-  FROM user_profiles
-  WHERE id = user_uuid;
-
-  -- Clamp HP between 0 and max_hp
-  new_hp := LEAST(GREATEST(new_hp, 0), max_hp_value);
-
-  UPDATE user_profiles
-  SET current_hp = new_hp
-  WHERE id = user_uuid;
-
-  RETURN new_hp;
-END;
-$$ LANGUAGE plpgsql;
 
 -- Function to get active goals
 CREATE OR REPLACE FUNCTION get_active_goals(user_uuid UUID)

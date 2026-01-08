@@ -30,7 +30,7 @@ export default function BurnDownModal({ task, onClose }: BurnDownModalProps) {
       setLoading(true);
       const { data, error } = await supabase
         .from('pomodoros')
-        .select('completed_at, duration_minutes')
+        .select('completed_at, duration_minutes, actual_duration_minutes')
         .eq('task_id', task.id)
         .not('completed_at', 'is', null)
         .order('completed_at', { ascending: true });
@@ -41,7 +41,9 @@ export default function BurnDownModal({ task, onClose }: BurnDownModalProps) {
           if (!row.completed_at) return;
           // Convert UTC timestamp to local date string using timezone-aware function
           const date = getLocalDateString(new Date(row.completed_at));
-          map[date] = (map[date] || 0) + (row.duration_minutes || 0);
+          // Use actual_duration_minutes if available, otherwise fall back to duration_minutes
+          const minutes = row.actual_duration_minutes ?? row.duration_minutes ?? 0;
+          map[date] = (map[date] || 0) + minutes;
         });
         setDailyMinutes(map);
       }
