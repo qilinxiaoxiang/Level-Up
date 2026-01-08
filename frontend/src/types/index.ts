@@ -8,8 +8,6 @@ export type GoalType = '3year' | '1year' | '1month';
 export interface UserProfile {
   id: string;
   username: string | null;
-  current_hp: number | null;
-  max_hp: number | null;
   pomodoro_duration: number | null;
   rest_credits: number | null;
   timezone_name: string | null;
@@ -63,7 +61,6 @@ export interface Task {
   updated_at: string | null;
   is_locked: boolean | null;
   required_item_id: string | null;
-  special_item_id: string | null;
   unlocked_by_task_id: string | null;
 }
 
@@ -88,7 +85,6 @@ export interface Pomodoro {
   focus_rating: number | null;
   accomplishment_note: string | null;
   created_at: string | null;
-  item_dropped_id: string | null;
 }
 
 export interface DailyCheckIn {
