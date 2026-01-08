@@ -37,7 +37,7 @@ export default function Dashboard() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-200">
-              ⚔️ Level Up
+              ⚔️ Revelation
             </h1>
             <p className="text-gray-400 mt-1">Your Productivity RPG</p>
           </div>
@@ -47,33 +47,6 @@ export default function Dashboard() {
           >
             Sign Out
           </button>
-        </div>
-
-        {/* Vitals */}
-        <div className="bg-slate-800 rounded-lg p-6 border border-purple-500/20 shadow-lg mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">Vitals</h2>
-          <div className="bg-slate-900 p-4 rounded-lg">
-            <p className="text-gray-400 text-sm">HP</p>
-            <p className="text-3xl font-bold text-red-400">
-              {profile?.current_hp || 100}/{profile?.max_hp || 100}
-            </p>
-          </div>
-
-          {/* HP Bar */}
-          <div className="mt-4">
-            <div className="flex justify-between text-sm text-gray-400 mb-1">
-              <span>Health</span>
-              <span>{profile?.current_hp || 100}/{profile?.max_hp || 100}</span>
-            </div>
-            <div className="w-full bg-slate-900 rounded-full h-3">
-              <div
-                className="bg-gradient-to-r from-red-600 to-red-400 h-3 rounded-full transition-all"
-                style={{
-                  width: `${((profile?.current_hp || 100) / (profile?.max_hp || 100)) * 100}%`,
-                }}
-              ></div>
-            </div>
-          </div>
         </div>
 
         {/* Revelation Feature - Prominent CTA */}
