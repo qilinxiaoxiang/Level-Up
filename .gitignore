@@ -168,3 +168,64 @@ nbproject/
 todo.txt
 notes.txt
 scratch.*
+
+# Debug/screenshot files
+debug*.jpg
+debug*.png
+screenshot*.jpg
+screenshot*.png
+
+# iOS / Xcode
+ios-app/**/xcuserdata/
+ios-app/**/xcshareddata/xcschemes/
+ios-app/**/.DS_Store
+ios-app/**/build/
+ios-app/**/DerivedData/
+ios-app/**/*.pbxuser
+ios-app/**/*.mode1v3
+ios-app/**/*.mode2v3
+ios-app/**/*.perspectivev3
+ios-app/**/*.xcuserstate
+ios-app/**/*.xcscmblueprint
+ios-app/**/*.xccheckout
+ios-app/**/Pods/
+ios-app/**/Podfile.lock
+ios-app/**/.build/
+ios-app/**/*.moved-aside
+ios-app/**/*.hmap
+ios-app/**/*.ipa
+ios-app/**/*.dSYM.zip
+ios-app/**/*.dSYM
+ios-app/**/Config.plist
+ios-app/**/GoogleService-Info.plist
+ios-app/**/.swiftpm/
+ios-app/**/*.xcodeproj/project.xcworkspace/
+ios-app/**/*.xcodeproj/xcuserdata/
+
+# Swift Package Manager
+ios-app/.swiftpm/
+ios-app/.build/
+ios-app/Package.resolved
+
+# CocoaPods (if used)
+ios-app/Pods/
+ios-app/Podfile.lock
+
+# Carthage (if used)
+ios-app/Carthage/Build/
+
+# fastlane (if used for deployment)
+ios-app/fastlane/report.xml
+ios-app/fastlane/Preview.html
+ios-app/fastlane/screenshots/
+ios-app/fastlane/test_output/
+
+# App packaging
+ios-app/**/*.app
+ios-app/**/*.dSYM
+ios-app/**/*.ipa
+ios-app/**/*.xcarchive
+
+# Provisioning profiles
+ios-app/**/*.mobileprovision
+ios-app/**/*.provisionprofile
