@@ -89,14 +89,13 @@ export const useUserStore = create<UserState>((set, get) => ({
         return `${nextYear}-${nextMonth}-${nextDay}`;
       };
 
+      const latestCheckInDate = dates[0] || null;
       let recalculatedStreak = 0;
-      let cursor = today;
-      while (dateSet.has(cursor)) {
+      let cursor = latestCheckInDate;
+      while (cursor && dateSet.has(cursor)) {
         recalculatedStreak++;
         cursor = addDaysToDateString(cursor, -1);
       }
-
-      const latestCheckInDate = dates[0] || null;
       console.log('[streak] today', today);
       console.log('[streak] check-ins', dates);
       console.log('[streak] computed', recalculatedStreak, 'latest', latestCheckInDate);
