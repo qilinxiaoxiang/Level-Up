@@ -69,22 +69,56 @@ export const useUserStore = create<UserState>((set, get) => ({
         setDayCutOffsetMinutes(0);
       }
 
-      if (data?.last_streak_date && (data.current_streak || 0) > 0) {
-        const today = getLocalDateString();
-        const dayDiff = getLocalDayDiff(data.last_streak_date, today);
+      const { data: checkIns } = await supabase
+        .from('daily_check_ins')
+        .select('date')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+        .limit(365);
 
-        if (dayDiff >= 2) {
-          const { data: updated, error: updateError } = await supabase
-            .from('user_profiles')
-            .update({ current_streak: 0 })
-            .eq('id', user.id)
-            .select()
-            .single();
+      const dates = (checkIns || []).map((row) => row.date);
+      const dateSet = new Set(dates);
+      const today = getLocalDateString();
+      const addDaysToDateString = (dateString: string, deltaDays: number) => {
+        const [year, month, day] = dateString.split('-').map(Number);
+        const baseUtc = Date.UTC(year, month - 1, day + deltaDays);
+        const next = new Date(baseUtc);
+        const nextYear = next.getUTCFullYear();
+        const nextMonth = String(next.getUTCMonth() + 1).padStart(2, '0');
+        const nextDay = String(next.getUTCDate()).padStart(2, '0');
+        return `${nextYear}-${nextMonth}-${nextDay}`;
+      };
 
-          if (updateError) throw updateError;
-          set({ profile: updated, loading: false });
-          return;
-        }
+      let recalculatedStreak = 0;
+      let cursor = today;
+      while (dateSet.has(cursor)) {
+        recalculatedStreak++;
+        cursor = addDaysToDateString(cursor, -1);
+      }
+
+      const latestCheckInDate = dates[0] || null;
+      console.log('[streak] today', today);
+      console.log('[streak] check-ins', dates);
+      console.log('[streak] computed', recalculatedStreak, 'latest', latestCheckInDate);
+
+      const shouldUpdateStreak =
+        (data?.current_streak || 0) !== recalculatedStreak ||
+        (data?.last_streak_date || null) !== latestCheckInDate;
+
+      if (shouldUpdateStreak) {
+        const { data: updated, error: updateError } = await supabase
+          .from('user_profiles')
+          .update({
+            current_streak: recalculatedStreak,
+            last_streak_date: latestCheckInDate,
+          })
+          .eq('id', user.id)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
+        set({ profile: updated, loading: false });
+        return;
       }
 
       set({ profile: data, loading: false });
