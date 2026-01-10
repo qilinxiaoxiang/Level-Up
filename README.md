@@ -1,14 +1,34 @@
-# Level Up - Gamified Productivity RPG
+# Revelation - Gamified Productivity RPG
 
-A personal productivity application that transforms your daily tasks and goals into an engaging RPG experience. Complete Pomodoro sessions, earn rewards, level up your character, and track your progress toward long-term goals.
+A personal productivity application that transforms your daily tasks and goals into an engaging RPG experience. Complete Pomodoro sessions, earn rewards, achieve revelations, and track your progress toward long-term goals.
 
-## ⚠️ Important Development Rules
+---
 
-### Database Design
+# 🚨 CRITICAL DEVELOPMENT RULES - READ FIRST
+
+## ⚠️ MANDATORY: Git Workflow
+**ALWAYS follow these steps after ANY code modification:**
+
+1. **Test your changes** - Verify TypeScript compilation and build
+2. **Stage changes** - `git add` the modified files
+3. **Commit with clear message** - Explain what changed and why
+4. **PUSH IMMEDIATELY** - `git push` to keep remote repository up to date
+
+❌ **NEVER leave changes uncommitted or unpushed!**
+
+## ⚠️ Database Design Rules
 - **NEVER use foreign key constraints** in the database schema
 - Use `user_id` fields for data ownership but WITHOUT foreign key relationships
 - When querying with joins, do NOT use Supabase's foreign key syntax - manually join data in application code
 - This prevents cascading issues and keeps the database flexible
+
+## ⚠️ Code Quality Standards
+- **Always test on both mobile and desktop** - Check responsive design
+- **Run TypeScript checks** - `npx tsc --noEmit` before committing
+- **Avoid over-engineering** - Only implement what's requested
+- **Update documentation** - Record significant changes in README.md
+
+---
 
 ## 🎮 Core Features
 
@@ -62,7 +82,7 @@ A personal productivity application that transforms your daily tasks and goals i
 
 ## 🛠️ Tech Stack
 
-### Frontend
+### Web Frontend
 - **React 19** with **Vite** - Fast, modern development
 - **TypeScript** - Type safety
 - **TailwindCSS 4** - Utility-first styling
@@ -72,17 +92,24 @@ A personal productivity application that transforms your daily tasks and goals i
 - **date-fns** - Date manipulation
 - **Lucide React** - Icon library
 
-### Backend
+### iOS App (NEW - In Development)
+- **Swift 5.9+** with **SwiftUI** - Native iOS development
+- **iOS 17.0+** target - Latest SwiftUI features
+- **Supabase Swift SDK** - Shared backend with web app
+- **Combine** - Reactive programming
+- Feature parity with web app planned
+
+### Backend (Shared)
 - **Supabase** - PostgreSQL database + Authentication
 - **Row Level Security** - Data isolation per user
 - Automated user profile creation on signup
-- Database functions for XP/leveling calculations
+- Real-time data sync across web and iOS platforms
 
 ## 📦 Project Structure
 
 ```
 Level-Up/
-├── frontend/               # React application
+├── frontend/               # React web application
 │   ├── src/
 │   │   ├── components/    # React components
 │   │   │   ├── battle/    # Pomodoro modal
@@ -90,7 +117,6 @@ Level-Up/
 │   │   │   ├── dashboard/ # Dashboard widgets
 │   │   │   ├── goals/     # Goal setup forms
 │   │   │   ├── layout/    # Protected routes
-│   │   │   ├── shop/      # Shop panel
 │   │   │   └── tasks/     # Task cards & forms
 │   │   ├── hooks/         # Custom React hooks
 │   │   ├── lib/           # Supabase client
@@ -98,16 +124,47 @@ Level-Up/
 │   │   ├── store/         # Zustand stores
 │   │   └── types/         # TypeScript types
 │   └── package.json
-└── database/              # Database schema
-    └── schema.sql         # Complete DB setup
+├── database/              # Shared database schema
+│   └── schema.sql         # Complete DB setup
+└── ios-app/               # iOS planning documents
+    ├── SETUP.md           # Legacy setup docs
+    └── README.md          # Points to ~/code/revelation/
+
+~/code/revelation/          # Native iOS application (NEW - separate location)
+├── App/                   # App entry point
+├── Features/              # Feature modules (Auth, Goals, Tasks, etc.)
+│   ├── Auth/
+│   ├── Goals/
+│   ├── Tasks/
+│   ├── Dashboard/
+│   ├── Calendar/
+│   └── Pomodoro/
+├── Core/                  # Shared utilities and services
+│   ├── Models/           # Swift data models
+│   ├── Services/         # Repositories and business logic
+│   └── Supabase/         # Supabase client
+├── UI/                    # Reusable SwiftUI components
+├── Resources/             # Assets, fonts, etc.
+├── QUICKSTART.md          # Step-by-step Xcode setup
+├── SETUP.md              # Detailed setup instructions
+├── README.md             # Project overview
+└── IOS_CONVERSION_PLAN.md # Development roadmap
 ```
 
 ## 🚀 Setup & Installation
 
 ### Prerequisites
+
+**For Web App:**
 - Node.js >= 20.0.0
 - npm >= 9.0.0
 - Supabase account
+
+**For iOS App:**
+- macOS 14.0+
+- Xcode 15.0+
+- Active Apple Developer Account
+- Same Supabase account (shared backend)
 
 ### 1. Clone the Repository
 ```bash
@@ -115,36 +172,58 @@ git clone <repository-url>
 cd Level-Up
 ```
 
-### 2. Database Setup
+### 2. Database Setup (Shared - One Time)
 1. Create a new Supabase project at [supabase.com](https://supabase.com)
 2. Go to SQL Editor in your Supabase dashboard
 3. Run the entire `database/schema.sql` file
-4. Note your project URL and anon key
+4. Note your project URL and anon key (needed for both web and iOS)
 
-### 3. Frontend Setup
+### 3. Web Frontend Setup
+
 ```bash
 cd frontend
 npm install
 ```
 
-### 4. Environment Configuration
 Create `frontend/.env.local`:
 ```env
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-### 5. Run Development Server
+Run development server:
 ```bash
 npm run dev
 ```
 
 Visit `http://localhost:5173`
 
-### 6. Build for Production
+Build for production:
 ```bash
 npm run build
 ```
+
+### 4. iOS App Setup (Optional)
+
+**iOS source files are located at**: `~/code/revelation/`
+
+See `~/code/revelation/QUICKSTART.md` for step-by-step Xcode project creation.
+
+**Quick Start:**
+1. Open Xcode and create a new iOS App project
+2. Save in existing `~/code/revelation/` directory (files already there!)
+3. Add existing Swift source files to Xcode project
+4. Add Supabase Swift SDK via Swift Package Manager
+5. Configure environment variables with your Supabase credentials
+6. Build and run on simulator or device
+
+**Documentation:**
+- Quick Start: `~/code/revelation/QUICKSTART.md`
+- Detailed Setup: `~/code/revelation/SETUP.md`
+- Project Overview: `~/code/revelation/README.md`
+- Architecture Plan: `~/code/revelation/IOS_CONVERSION_PLAN.md`
+
+**Note:** Web and iOS apps share the same Supabase backend - data syncs in real-time across platforms!
 
 ## 📱 Usage Flow
 
@@ -167,27 +246,55 @@ npm run build
 
 ## 🎯 Current Implementation Status
 
-### ✅ Implemented
+### ✅ Web App - Implemented
 - User authentication (Supabase Auth)
 - Goal management (3-tier system)
 - Task CRUD (daily and one-time)
 - Pomodoro timer with focus tracking
-- **Overtime tracking system** (NEW)
-- **Pause period recording** (NEW)
-- **Smart time calculation**: Different logic for natural vs manual completions (NEW)
+- **Overtime tracking system**
+- **Pause period recording**
+- **Smart time calculation**: Different logic for natural vs manual completions
 - Real-time daily task status calculation
 - Customizable day cut time with timezone support
 - Streak tracking with rest credits
-- **Check-in calendar with month navigation** (UPDATED)
-- **Date-specific pomodoro viewing** (NEW)
+- **Check-in calendar with month navigation**
+- **Date-specific pomodoro viewing**
 - Time statistics using actual duration (Today, Week, Total)
 - Burn-down charts
 - Task archiving
-- Client-side prompt composition for Revelation/Next Move (Edge Function is passthrough)
+- Client-side prompt composition for Revelation/Next Move
 - Mobile-responsive UI
 - Icon-based buttons
 
-### 🚧 Planned Features
+### 🚧 iOS App - In Development
+**Phase 1: Core Infrastructure (Completed)**
+- ✅ Project structure and Swift Package setup
+- ✅ Supabase Swift SDK integration
+- ✅ Data models matching database schema
+- ✅ Repository layer for database operations
+- ✅ Authentication views (Sign In / Sign Up)
+
+**Phase 2: Core Features (In Progress)**
+- ✅ Main tab navigation (Dashboard, Goals, Tasks, Calendar)
+- ✅ Goals view with 3-tier system
+- ✅ Tasks list and management (daily & one-time)
+- ✅ Dashboard with statistics
+- ✅ Calendar view with month navigation
+- ✅ Basic Pomodoro timer (placeholder)
+- ⏳ Full Pomodoro implementation (background execution, notifications)
+- ⏳ Real-time data sync
+- ⏳ Offline support
+
+**Phase 3: iOS-Specific Features (Planned)**
+- ⏳ Lock screen & home screen widgets
+- ⏳ Live Activities for running Pomodoros
+- ⏳ Local notifications
+- ⏳ Siri shortcuts
+- ⏳ Apple Watch companion app (future)
+
+See `IOS_CONVERSION_PLAN.md` for complete iOS roadmap.
+
+### 🚧 General Planned Features
 See `next.md` for upcoming features and improvements:
 - Enhanced visual feedback
 - Achievement system
@@ -242,23 +349,11 @@ The app provides structure and motivation for productivity without gamification 
 
 ---
 
-## 🔨 Development Guidelines
+## 🔨 Additional Technical Guidelines
 
-When making changes to this project, please follow these guidelines:
+**⚠️ See "CRITICAL DEVELOPMENT RULES" at the top of this document first!**
 
-### Responsive Design
-- **Always test on both mobile and desktop** - Check layout, interactions, and usability on different screen sizes
-- Use responsive Tailwind classes (sm:, md:, lg:) appropriately
-- Test touch interactions on mobile devices
-
-### Version Control
-- **Always `git push` after modifications** - Keep the remote repository up to date
-- Write clear, descriptive commit messages
-
-### Documentation
-- **Record significant changes in README.md** - Add concise notes about new features or important modifications
-- **Update existing documentation** - When features change, update the corresponding sections in README.md
-- Keep change descriptions brief but informative
+This section contains additional technical details for specific scenarios.
 
 ### TypeScript & Supabase Best Practices
 - **Avoid `.single()` in Supabase queries** - Use array access `data?.[0]` instead to prevent "excessively deep type instantiation" errors
@@ -298,6 +393,37 @@ When making changes to this project, please follow these guidelines:
   - TypeScript compilation errors will occur if types are out of sync
   - Use direct type paths (e.g., `Database['public']['Tables']['table_name']['Row']`) instead of the `Tables<>` helper to avoid "excessively deep type instantiation" errors
 - **Clean up** - Remove migration file after updating schema.sql (migration is tracked remotely)
+
+---
+
+## 📱 iOS App Development
+
+### Current Status
+The native iOS app is in active development with core infrastructure and features implemented. The app shares the same Supabase backend as the web version, enabling seamless data sync across platforms.
+
+### Key Features Implemented
+- **Native SwiftUI Interface**: Modern, declarative UI matching iOS design patterns
+- **Shared Backend**: Same Supabase database, authentication, and business logic
+- **Feature Modules**: Clean architecture with separate modules for Auth, Goals, Tasks, Calendar, and Pomodoro
+- **Repository Pattern**: Data access layer abstracting Supabase operations
+- **Real-Time Sync**: Changes made on web instantly appear on iOS and vice versa
+
+### Documentation
+- **Setup Guide**: See `ios-app/SETUP.md` for detailed Xcode setup instructions
+- **Architecture Plan**: See `IOS_CONVERSION_PLAN.md` for complete development roadmap
+- **Package Manager**: Swift Package Manager for dependency management
+
+### Next Steps for iOS
+1. Complete Pomodoro timer with background execution and notifications
+2. Implement real-time Supabase subscriptions
+3. Add offline support with local caching
+4. Create iOS widgets (lock screen and home screen)
+5. Implement Live Activities for running Pomodoros
+6. Add Siri shortcuts integration
+7. Beta testing via TestFlight
+8. App Store submission
+
+**Note**: Both web and iOS apps can be used interchangeably - user data stays perfectly in sync!
 
 ---
 
