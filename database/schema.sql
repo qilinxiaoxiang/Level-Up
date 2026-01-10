@@ -583,7 +583,11 @@ CREATE TABLE IF NOT EXISTS revelations (
   -- Input
   user_message TEXT,
   provider TEXT NOT NULL DEFAULT 'deepseek', -- 'deepseek' or 'openai'
-  suggestion_type TEXT DEFAULT 'revelation' CHECK (suggestion_type IN ('revelation', 'next_task')),
+  suggestion_type TEXT DEFAULT 'revelation_level1' CHECK (suggestion_type IN (
+    'revelation_level1', 'revelation_level2', 'revelation_level3',
+    'next_move_level1', 'next_move_level2', 'next_move_level3',
+    'revelation', 'next_task' -- backward compatibility
+  )),
 
   -- Output
   revelation_text TEXT NOT NULL,

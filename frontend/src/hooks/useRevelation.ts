@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { buildRevelationPrompts, type RevelationContext } from '../utils/revelationPrompts';
+import { buildRevelationPrompts, getSuggestionType, type RevelationContext, type AILevel } from '../utils/revelationPrompts';
 import {
   getStartOfDayUTC,
   getEndOfDayUTC,
@@ -259,7 +259,11 @@ export function useRevelation() {
     };
   };
 
-  const getRevelation = async (userMessage?: string, provider: 'deepseek' | 'openai' = 'deepseek') => {
+  const getRevelation = async (
+    userMessage?: string,
+    level: AILevel = 1,
+    provider: 'deepseek' | 'openai' = 'deepseek'
+  ) => {
     setLoading(true);
     setError(null);
 
@@ -275,12 +279,13 @@ export function useRevelation() {
       console.log('Collecting context...');
       const context = await collectContext(session.user.id, userMessage);
 
-      const { systemPrompt, userPrompt } = buildRevelationPrompts(context);
+      const { systemPrompt, userPrompt } = buildRevelationPrompts(context, level);
+      const suggestionType = getSuggestionType('revelation', level);
 
       // Call the Edge Function (prompt passthrough)
       console.log('Calling Edge Function with prompts...');
       const { data, error: functionError } = await supabase.functions.invoke('revelation', {
-        body: { systemPrompt, userPrompt, provider, suggestionType: 'revelation' },
+        body: { systemPrompt, userPrompt, provider, suggestionType },
       });
 
       if (functionError) {
@@ -305,6 +310,7 @@ export function useRevelation() {
         user_message: userMessage || null,
         provider,
         revelation_text: revelationText,
+        suggestion_type: suggestionType,
         context_snapshot: {
           systemPrompt: response.systemPrompt,
           userPrompt: response.userPrompt,
@@ -313,6 +319,7 @@ export function useRevelation() {
           streak: context.performance.streak.current,
           tasksCompleted: context.tasks.daily.todayProgress.filter((t) => t.isDone).length,
           totalDailyTasks: context.tasks.daily.todayProgress.length,
+          level,
         },
       });
 
