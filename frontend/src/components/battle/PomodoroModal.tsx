@@ -449,20 +449,25 @@ export default function PomodoroModal({
 
       if (!profile) return;
 
+      const addDaysToDateString = (dateString: string, deltaDays: number) => {
+        const [year, month, day] = dateString.split('-').map(Number);
+        const baseUtc = Date.UTC(year, month - 1, day + deltaDays);
+        const next = new Date(baseUtc);
+        const nextYear = next.getUTCFullYear();
+        const nextMonth = String(next.getUTCMonth() + 1).padStart(2, '0');
+        const nextDay = String(next.getUTCDate()).padStart(2, '0');
+        return `${nextYear}-${nextMonth}-${nextDay}`;
+      };
+
       let streakCount = 0;
-      let expectedDate = new Date(todayDate);
+      let expectedDate = todayDate;
 
       // Count consecutive check-ins going backwards from today
       for (const checkIn of checkIns) {
-        const checkInDate = new Date(checkIn.date);
-        const daysDiff = Math.floor(
-          (expectedDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24)
-        );
-
-        if (daysDiff === 0) {
+        if (checkIn.date === expectedDate) {
           // This date matches expected, continue streak
           streakCount++;
-          expectedDate = new Date(expectedDate.getTime() - 24 * 60 * 60 * 1000);
+          expectedDate = addDaysToDateString(expectedDate, -1);
         } else {
           // Gap too large, streak broken
           break;
