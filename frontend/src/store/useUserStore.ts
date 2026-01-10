@@ -96,9 +96,6 @@ export const useUserStore = create<UserState>((set, get) => ({
         recalculatedStreak++;
         cursor = addDaysToDateString(cursor, -1);
       }
-      console.log('[streak] today', today);
-      console.log('[streak] check-ins', dates);
-      console.log('[streak] computed', recalculatedStreak, 'latest', latestCheckInDate);
 
       const shouldUpdateStreak =
         (data?.current_streak || 0) !== recalculatedStreak ||
