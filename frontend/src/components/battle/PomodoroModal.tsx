@@ -440,10 +440,10 @@ export default function PomodoroModal({
         return;
       }
 
-      // Get user's profile for rest credits and longest streak
+      // Get user's profile for longest streak
       const { data: profile } = await supabase
         .from('user_profiles')
-        .select('rest_credits, longest_streak')
+        .select('longest_streak')
         .eq('id', userId)
         .single();
 
@@ -451,7 +451,6 @@ export default function PomodoroModal({
 
       let streakCount = 0;
       let expectedDate = new Date(todayDate);
-      let restCredits = profile.rest_credits || 0;
 
       // Count consecutive check-ins going backwards from today
       for (const checkIn of checkIns) {
@@ -464,12 +463,6 @@ export default function PomodoroModal({
           // This date matches expected, continue streak
           streakCount++;
           expectedDate = new Date(expectedDate.getTime() - 24 * 60 * 60 * 1000);
-        } else if (daysDiff > 0 && daysDiff <= restCredits) {
-          // Gap can be covered by rest credits
-          const creditsNeeded = daysDiff;
-          restCredits -= creditsNeeded;
-          streakCount++;
-          expectedDate = new Date(checkInDate.getTime() - 24 * 60 * 60 * 1000);
         } else {
           // Gap too large, streak broken
           break;
