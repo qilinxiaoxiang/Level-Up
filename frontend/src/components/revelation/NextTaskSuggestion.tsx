@@ -212,24 +212,22 @@ export default function NextTaskSuggestion({ onViewHistory }: NextTaskSuggestion
         completed_minutes: t.completed_minutes,
         linkedDailyTitles,
         lastCompletedAt: lastPomodoroByTask[t.id] || null,
+        createdAt: t.created_at,
       };
     });
 
-    // Fetch performance data (last 7 days)
-    const weekAgo = new Date(now);
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const { data: pomodorosData } = await supabase
+    // Fetch performance data (last 3 days)
+    const threeDaysAgo = new Date(now);
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    const { data: recent3DaysData } = await supabase
       .from('pomodoros')
       .select('*')
       .eq('user_id', userId)
-      .gte('completed_at', weekAgo.toISOString())
-      .not('completed_at', 'is', null);
+      .gte('completed_at', threeDaysAgo.toISOString())
+      .not('completed_at', 'is', null)
+      .order('completed_at', { ascending: false });
 
-    const totalCount = pomodorosData?.length || 0;
-    const avgPerDay = totalCount / 7;
-    const avgFocusRating = pomodorosData?.reduce((sum, p) => sum + (p.focus_rating || 0), 0) / (totalCount || 1);
-
-    const taskIds = [...new Set(pomodorosData?.map(p => p.task_id).filter(Boolean) || [])];
+    const taskIds = [...new Set(recent3DaysData?.map(p => p.task_id).filter(Boolean) || [])];
     const { data: tasksForPomodoros } = taskIds.length
       ? await supabase
           .from('tasks')
@@ -241,18 +239,13 @@ export default function NextTaskSuggestion({ onViewHistory }: NextTaskSuggestion
       tasksForPomodoros?.map(t => [t.id, t.title] as [string, string]) || []
     );
 
-    const pomodorosByTask = pomodorosData?.reduce((acc, p) => {
-      const taskTitle = p.task_id ? (taskTitleMap.get(p.task_id) || 'Unknown') : 'Unknown';
-      const existing = acc.find(item => item.taskTitle === taskTitle);
-      if (existing) {
-        existing.count++;
-      } else {
-        acc.push({ taskTitle, count: 1 });
-      }
-      return acc;
-    }, [] as Array<{ taskTitle: string; count: number }>);
-
-    pomodorosByTask?.sort((a, b) => b.count - a.count);
+    const recent3DaysPomodoros = (recent3DaysData || []).map(p => ({
+      taskTitle: p.task_id ? (taskTitleMap.get(p.task_id) || 'Unknown') : 'Unknown',
+      duration_minutes: p.duration_minutes,
+      completedAt: p.completed_at!,
+      focusRating: p.focus_rating,
+      accomplishmentNote: p.accomplishment_note,
+    }));
 
     const todayPomodoroCount = todayPomodoros?.length || 0;
 
@@ -285,12 +278,7 @@ export default function NextTaskSuggestion({ onViewHistory }: NextTaskSuggestion
           current: profile.current_streak || 0,
           longest: profile.longest_streak || 0,
         },
-        last7Days: {
-          totalCount,
-          avgPerDay,
-          avgFocusRating,
-          pomodorosByTask: pomodorosByTask || [],
-        },
+        recent3DaysPomodoros,
       },
     };
   };

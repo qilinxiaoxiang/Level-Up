@@ -39,6 +39,7 @@ export interface RevelationContext {
         completed_minutes: number | null;
         linkedDailyTitles: string[];
         lastCompletedAt: string | null;
+        createdAt: string | null;
       }>;
       withDeadlines: Array<{
         title: string;
@@ -53,15 +54,13 @@ export interface RevelationContext {
       current: number;
       longest: number;
     };
-    last7Days: {
-      totalCount: number;
-      avgPerDay: number;
-      avgFocusRating: number;
-      pomodorosByTask: Array<{
-        taskTitle: string;
-        count: number;
-      }>;
-    };
+    recent3DaysPomodoros: Array<{
+      taskTitle: string;
+      duration_minutes: number;
+      completedAt: string;
+      focusRating: number | null;
+      accomplishmentNote: string | null;
+    }>;
   };
   userMessage?: string;
 }
@@ -368,20 +367,27 @@ export function buildRevelationUserPrompt(ctx: RevelationContext): string {
   prompt += `- Longest streak: ${ctx.performance.streak.longest} days\n`;
   prompt += `- Pomodoros completed today: ${ctx.profile.todayPomodoros}\n\n`;
 
-  // Last 7 days summary
-  prompt += `## Last 7 Days\n`;
-  prompt += `- Total pomodoros: ${ctx.performance.last7Days.totalCount}\n`;
-  prompt += `- Average per day: ${ctx.performance.last7Days.avgPerDay.toFixed(1)}\n`;
-  if (ctx.performance.last7Days.avgFocusRating > 0) {
-    prompt += `- Average focus rating: ${ctx.performance.last7Days.avgFocusRating.toFixed(1)}/5\n`;
-  }
-  if (ctx.performance.last7Days.pomodorosByTask.length > 0) {
-    prompt += `\nMost worked on tasks:\n`;
-    ctx.performance.last7Days.pomodorosByTask.slice(0, 3).forEach((t) => {
-      prompt += `- ${t.taskTitle}: ${t.count} sessions\n`;
+  // Recent 3 days pomodoros
+  if (ctx.performance.recent3DaysPomodoros.length > 0) {
+    prompt += `## Recent Pomodoros (Last 3 Days)\n\n`;
+    ctx.performance.recent3DaysPomodoros.forEach((p) => {
+      const completedDate = new Date(p.completedAt);
+      const formattedDate = format(completedDate, 'MMM dd, h:mm a');
+      const relativeTime = formatDistanceToNow(completedDate, { addSuffix: true });
+
+      prompt += `- **${p.taskTitle}** (${p.duration_minutes} min)\n`;
+      prompt += `  - Completed: ${formattedDate} (${relativeTime})\n`;
+      if (p.focusRating) {
+        prompt += `  - Focus: ${p.focusRating}/5\n`;
+      }
+      if (p.accomplishmentNote) {
+        prompt += `  - Note: ${p.accomplishmentNote}\n`;
+      }
+      prompt += '\n';
     });
+  } else {
+    prompt += `## Recent Pomodoros (Last 3 Days)\n\nNo pomodoros completed in the last 3 days.\n\n`;
   }
-  prompt += '\n';
 
   // Goals
   if (ctx.goals.threeYear || ctx.goals.oneYear || ctx.goals.oneMonth) {
@@ -482,6 +488,7 @@ export function buildRevelationUserPrompt(ctx: RevelationContext): string {
 
       prompt += `### ${t.title}\n`;
       prompt += `- Priority: ${t.priority || 'medium'}\n`;
+      prompt += `- Created: ${formatLastCompleted(t.createdAt)}\n`;
       if (deadline) {
         prompt += `- Deadline: ${deadline.toISOString().slice(0, 10)}\n`;
         prompt += `- Days until deadline: ${daysUntilDeadline}\n`;
