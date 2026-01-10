@@ -464,9 +464,9 @@ export default function PomodoroModal({
           // This date matches expected, continue streak
           streakCount++;
           expectedDate = new Date(expectedDate.getTime() - 24 * 60 * 60 * 1000);
-        } else if (daysDiff > 0 && daysDiff <= restCredits + 1) {
+        } else if (daysDiff > 0 && daysDiff <= restCredits) {
           // Gap can be covered by rest credits
-          const creditsNeeded = daysDiff - 1;
+          const creditsNeeded = daysDiff;
           restCredits -= creditsNeeded;
           streakCount++;
           expectedDate = new Date(checkInDate.getTime() - 24 * 60 * 60 * 1000);
