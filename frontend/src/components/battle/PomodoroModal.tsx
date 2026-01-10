@@ -459,20 +459,20 @@ export default function PomodoroModal({
         return `${nextYear}-${nextMonth}-${nextDay}`;
       };
 
+      const dates = (checkIns || []).map((checkIn) => checkIn.date).sort((a, b) => (a < b ? 1 : -1));
+      const dateSet = new Set(dates);
+      console.log('[streak] today', todayDate);
+      console.log('[streak] check-ins', dates);
+
       let streakCount = 0;
-      let expectedDate = todayDate;
+      let cursor = todayDate;
 
       // Count consecutive check-ins going backwards from today
-      for (const checkIn of checkIns) {
-        if (checkIn.date === expectedDate) {
-          // This date matches expected, continue streak
-          streakCount++;
-          expectedDate = addDaysToDateString(expectedDate, -1);
-        } else {
-          // Gap too large, streak broken
-          break;
-        }
+      while (dateSet.has(cursor)) {
+        streakCount++;
+        cursor = addDaysToDateString(cursor, -1);
       }
+      console.log('[streak] computed', streakCount, 'stops at', cursor);
 
       const newLongestStreak = Math.max(profile.longest_streak || 0, streakCount);
 
