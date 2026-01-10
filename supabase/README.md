@@ -1,6 +1,6 @@
 # Supabase Edge Functions
 
-This directory contains Supabase Edge Functions for the Level-Up application.
+This directory contains Supabase Edge Functions for the Revelation application.
 
 ## Functions
 

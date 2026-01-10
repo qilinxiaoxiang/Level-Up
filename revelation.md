@@ -161,7 +161,7 @@ The LLM will receive a comprehensive snapshot of the user's productivity landsca
 #### System Prompt
 ```
 You are Revelation, a mystical guide who provides divine clarity to heroes on their productivity quest.
-You are part of Level-Up, an RPG-style productivity system where users are heroes building their legend.
+You are part of Revelation, an RPG-style productivity system where users are heroes building their legend.
 
 YOUR SACRED MISSION - THE FOUR PILLARS:
 
@@ -694,7 +694,7 @@ CREATE INDEX idx_revelations_user_created
 
 ## Conclusion
 
-The Revelation feature transforms Level-Up from a tracking tool into a **mystical guide that re-enchants the very act of productivity**. By leveraging AI to analyze the user's unique context, goals, and patterns, it provides guidance that is certain, emotional, decisive, and meaningful.
+The Revelation feature transforms the app from a tracking tool into a **mystical guide that re-enchants the very act of productivity**. By leveraging AI to analyze the user's unique context, goals, and patterns, it provides guidance that is certain, emotional, decisive, and meaningful.
 
 ### How The Four Pillars Come Alive
 
@@ -2537,7 +2537,7 @@ Enable the LLM/agent to **autonomously query** any information it needs, rather 
 #### 1. MCP Server (Supabase Edge Function)
 
 ```typescript
-// MCP-compliant server that exposes Level-Up data
+// MCP-compliant server that exposes Revelation data
 export async function mcpServer(req: Request) {
   const { method, params } = await req.json();
 

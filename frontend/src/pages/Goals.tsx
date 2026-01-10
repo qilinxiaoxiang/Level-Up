@@ -385,7 +385,7 @@ export default function Goals() {
           {/* Title */}
           <div className="relative text-center flex flex-col items-center gap-3 sm:block">
             <h1 className="text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-200">
-              Level Up
+              Revelation
             </h1>
             <button
               type="button"

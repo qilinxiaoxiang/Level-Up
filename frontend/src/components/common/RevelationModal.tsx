@@ -1,15 +1,15 @@
-interface LevelUpModalProps {
+interface RevelationModalProps {
   level: number;
   onClose: () => void;
 }
 
-export default function LevelUpModal({ level, onClose }: LevelUpModalProps) {
+export default function RevelationModal({ level, onClose }: RevelationModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
       <div className="w-full max-w-md bg-slate-900 rounded-2xl border border-yellow-500/30 shadow-2xl p-6 text-center space-y-4">
         <div className="text-5xl">✨</div>
-        <h2 className="text-3xl font-bold text-yellow-300">Level Up!</h2>
-        <p className="text-gray-300">You reached level {level}.</p>
+        <h2 className="text-3xl font-bold text-yellow-300">Revelation Achieved!</h2>
+        <p className="text-gray-300">You achieved revelation level {level}.</p>
         <button
           type="button"
           onClick={onClose}

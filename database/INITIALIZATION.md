@@ -1,6 +1,6 @@
 # Database Initialization Guide
 
-This guide will help you set up your Supabase database for the Level Up application.
+This guide will help you set up your Supabase database for the Revelation application.
 
 ## Prerequisites
 

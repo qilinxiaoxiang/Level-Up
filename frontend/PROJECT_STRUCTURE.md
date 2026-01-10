@@ -1,6 +1,6 @@
 # Frontend Project Structure
 
-This document explains the organization of the Level Up frontend codebase.
+This document explains the organization of the Revelation frontend codebase.
 
 ## Directory Structure
 

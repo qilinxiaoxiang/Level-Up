@@ -37,7 +37,7 @@ export default function Auth() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-200 mb-2">
-            ⚔️ Level Up
+            ⚔️ Revelation
           </h1>
           <p className="text-gray-400">Transform your productivity into an epic RPG adventure</p>
         </div>
@@ -106,7 +106,7 @@ export default function Auth() {
         </div>
 
         <div className="mt-8 text-center text-gray-500 text-sm">
-          <p>Complete tasks • Fight enemies • Level up your character</p>
+          <p>Complete tasks • Fight enemies • Achieve revelations</p>
         </div>
       </div>
     </div>
