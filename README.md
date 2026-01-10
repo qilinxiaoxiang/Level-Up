@@ -338,7 +338,28 @@ Private project - Not licensed for public use.
 
 ## 🎨 Design Philosophy
 
-**The Loop**: Set Goals → Complete Tasks → Track Progress → Maintain Streaks → Achieve More
+### Core Essence: Selling Feedback and Meaning
+
+At its foundation, Revelation sells two fundamental things:
+1. **Feedback** - Tangible progress indicators, statistics, and validation of your efforts
+2. **Meaning** - A sense of purpose and significance in your daily actions
+
+While functionally an efficiency tool, Revelation differs from traditional productivity apps by introducing AI assistance at three progressive levels:
+
+#### Level 1: Personal Assistant
+The AI acts as your organizer, helping schedule and prioritize your existing tasks. "You have many tasks - let me arrange them for you: what to do and when."
+
+#### Level 2: Personal Growth Coach
+The AI becomes your strategic advisor, helping you align tasks with goals. It suggests which tasks are necessary, which aren't, what's important, what's not, and what new tasks you should consider based on your objectives.
+
+#### Level 3: Revelation (天启)
+The ultimate level - a role reversal. When you lack purpose or feel that nothing has meaning, the AI helps construct meaning itself and assigns tasks to you. Instead of you giving the AI tasks, **the AI gives you tasks**.
+
+This isn't absurd - meaning is constructed anyway. Humans are "animals suspended in webs of self-woven meaning." When you can't weave your own meaning, AI helps weave it for you.
+
+### The Loop
+
+**Set Goals → Complete Tasks → Track Progress → Maintain Streaks → Achieve More**
 
 The app provides structure and motivation for productivity without gamification distractions. It's designed to:
 - Make task completion visible and measurable
@@ -346,6 +367,7 @@ The app provides structure and motivation for productivity without gamification 
 - Encourage consistent daily habits with streak tracking
 - Provide flexible goal setting with 3-tier timeline
 - Balance work with rest (via rest credits and customizable day cut)
+- **Progressively introduce AI assistance from assistant to revelation**
 
 ---
 
@@ -369,30 +391,21 @@ This section contains additional technical details for specific scenarios.
 - **Test TypeScript compilation** - Run `npx tsc --noEmit` before committing to catch type errors early
 
 ### Database Changes
-- **Modify `database/schema.sql` first** - This is the source of truth for the complete schema
-- **Create migration file** - Create migration in `supabase/migrations/` with format `YYYYMMDDHHmmss_description.sql`
-- **Deploy to Supabase**:
-  ```bash
-  # Source Supabase token (stored in ~/.zshrc)
-  export SUPABASE_ACCESS_TOKEN=<your_token>
 
-  # Link project (if not already linked)
-  supabase link --project-ref mcizaldoxrxgbpbbeytp
-
-  # Push migration
-  supabase db push --linked
-  ```
-- **Update `database/schema.sql`** - Apply the same changes to the main schema file for new setups
-- **⚠️ CRITICAL: Update TypeScript types after DDL changes** - This step is MANDATORY:
-  ```bash
-  # Generate updated types from Supabase
-  supabase gen types typescript --linked > frontend/src/types/database.ts
-  ```
-  - **Always run this after deploying any table structure changes**
-  - Vercel deployment will fail if types don't match the database schema
-  - TypeScript compilation errors will occur if types are out of sync
-  - Use direct type paths (e.g., `Database['public']['Tables']['table_name']['Row']`) instead of the `Tables<>` helper to avoid "excessively deep type instantiation" errors
-- **Clean up** - Remove migration file after updating schema.sql (migration is tracked remotely)
+1. **Update schema**: Edit `database/schema.sql`
+2. **Create migration**: `supabase/migrations/YYYYMMDDHHmmss_description.sql`
+3. **Deploy**:
+   ```bash
+   supabase db push --linked
+   # If error "Remote migration versions not found":
+   supabase migration repair --status reverted <timestamp>
+   supabase db push --linked
+   ```
+4. **⚠️ CRITICAL - Update types** (Vercel will fail without this):
+   ```bash
+   supabase gen types typescript --linked > frontend/src/types/database.ts
+   npx tsc --noEmit  # Verify no errors
+   ```
 
 ---
 

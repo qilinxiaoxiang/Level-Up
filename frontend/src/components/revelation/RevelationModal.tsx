@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { X, Sparkles, Loader2 } from 'lucide-react';
+import { X, Sparkles, Loader2, Calendar, TrendingUp, Zap } from 'lucide-react';
 import { useRevelation } from '../../hooks/useRevelation';
+import type { AILevel } from '../../utils/revelationPrompts';
 
 interface RevelationModalProps {
   onClose: () => void;
@@ -9,12 +10,49 @@ interface RevelationModalProps {
 
 export default function RevelationModal({ onClose, onRevelationReceived }: RevelationModalProps) {
   const [userMessage, setUserMessage] = useState('');
+  const [selectedLevel, setSelectedLevel] = useState<AILevel>(1);
   const { revelation, loading, error, getRevelation } = useRevelation();
 
-  const handleGetRevelation = async () => {
-    await getRevelation(userMessage || undefined);
+  const handleGetRevelation = async (level: AILevel) => {
+    await getRevelation(userMessage || undefined, level);
     onRevelationReceived?.();
   };
+
+  const levelConfig = {
+    1: {
+      icon: Calendar,
+      title: 'Personal Assistant',
+      subtitle: 'Organize & Schedule',
+      description: 'Get a clear daily plan with prioritized tasks and time blocks',
+      color: 'blue',
+      gradient: 'from-blue-600 to-cyan-600',
+      hoverGradient: 'from-blue-700 to-cyan-700',
+      bgGradient: 'from-blue-500/20 to-cyan-500/10',
+      borderColor: 'border-blue-500/40',
+    },
+    2: {
+      icon: TrendingUp,
+      title: 'Growth Coach',
+      subtitle: 'Align & Refine',
+      description: 'Strategic analysis of goal alignment and task effectiveness',
+      color: 'purple',
+      gradient: 'from-purple-600 to-pink-600',
+      hoverGradient: 'from-purple-700 to-pink-700',
+      bgGradient: 'from-purple-500/20 to-pink-500/10',
+      borderColor: 'border-purple-500/40',
+    },
+    3: {
+      icon: Zap,
+      title: 'Revelation',
+      subtitle: 'Meaning & Purpose',
+      description: 'Deep existential guidance when direction feels unclear',
+      color: 'amber',
+      gradient: 'from-amber-600 to-orange-600',
+      hoverGradient: 'from-amber-700 to-orange-700',
+      bgGradient: 'from-amber-500/20 to-orange-500/10',
+      borderColor: 'border-amber-500/40',
+    },
+  } as const;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black sm:px-4">
@@ -39,20 +77,69 @@ export default function RevelationModal({ onClose, onRevelationReceived }: Revel
           </button>
         </div>
 
-        {/* User Input (Optional) */}
+        {/* Level Selection */}
         {!revelation && (
-          <div className="space-y-3">
-            <label className="block text-sm text-gray-300">
-              Share your thoughts (optional)
-            </label>
-            <textarea
-              value={userMessage}
-              onChange={(e) => setUserMessage(e.target.value)}
-              placeholder="e.g., 'Feeling tired today', 'Need to finish project X', 'Want to focus on creative work'..."
-              className="w-full px-4 py-3 bg-slate-800/50 border border-purple-500/20 rounded-lg text-white placeholder-gray-500 text-base focus:outline-none focus:border-purple-500/50 transition-colors disabled:opacity-60"
-              rows={3}
-              disabled={loading}
-            />
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-3">
+                Choose AI Level
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {([1, 2, 3] as AILevel[]).map((level) => {
+                  const config = levelConfig[level];
+                  const Icon = config.icon;
+                  const isSelected = selectedLevel === level;
+                  return (
+                    <button
+                      key={level}
+                      type="button"
+                      onClick={() => setSelectedLevel(level)}
+                      disabled={loading}
+                      className={`relative p-4 rounded-xl border-2 transition-all text-left ${
+                        isSelected
+                          ? `border-${config.color}-500 bg-gradient-to-br ${config.bgGradient}`
+                          : 'border-slate-700 bg-slate-800/30 hover:border-slate-600'
+                      } disabled:opacity-50`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`p-2 rounded-lg ${isSelected ? `bg-gradient-to-br ${config.gradient}` : 'bg-slate-700'}`}>
+                          <Icon size={20} className="text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-bold text-white text-sm">{config.title}</div>
+                          <div className={`text-xs ${isSelected ? `text-${config.color}-300` : 'text-gray-400'}`}>
+                            {config.subtitle}
+                          </div>
+                        </div>
+                      </div>
+                      <p className="mt-2 text-xs text-gray-400 leading-relaxed">
+                        {config.description}
+                      </p>
+                      {isSelected && (
+                        <div className="absolute top-2 right-2">
+                          <div className={`w-2 h-2 rounded-full bg-${config.color}-400 animate-pulse`} />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* User Input (Optional) */}
+            <div className="space-y-3">
+              <label className="block text-sm text-gray-300">
+                Share your thoughts (optional)
+              </label>
+              <textarea
+                value={userMessage}
+                onChange={(e) => setUserMessage(e.target.value)}
+                placeholder="e.g., 'Feeling tired today', 'Need to finish project X', 'Want to focus on creative work'..."
+                className="w-full px-4 py-3 bg-slate-800/50 border border-purple-500/20 rounded-lg text-white placeholder-gray-500 text-base focus:outline-none focus:border-purple-500/50 transition-colors disabled:opacity-60"
+                rows={3}
+                disabled={loading}
+              />
+            </div>
           </div>
         )}
 
@@ -69,7 +156,7 @@ export default function RevelationModal({ onClose, onRevelationReceived }: Revel
                 </div>
                 <p className="text-amber-200 text-xs tracking-[0.4em] uppercase">Revelation Ritual</p>
                 <p className="text-gray-100 text-base">
-                  The oracle speaks through the veil. Stay still and receive the light.
+                  The revelation speaks through the veil. Stay still and receive the light.
                 </p>
                 <button
                   type="button"
@@ -126,9 +213,9 @@ export default function RevelationModal({ onClose, onRevelationReceived }: Revel
               </button>
               <button
                 type="button"
-                onClick={handleGetRevelation}
+                onClick={() => handleGetRevelation(selectedLevel)}
                 disabled={loading}
-                className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-sm font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className={`px-6 py-2 bg-gradient-to-r ${levelConfig[selectedLevel].gradient} hover:${levelConfig[selectedLevel].hoverGradient} text-white text-sm font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
               >
                 {loading ? (
                   <>
@@ -138,7 +225,7 @@ export default function RevelationModal({ onClose, onRevelationReceived }: Revel
                 ) : (
                   <>
                     <Sparkles size={16} />
-                    Seek Revelation
+                    Seek {levelConfig[selectedLevel].title}
                   </>
                 )}
               </button>

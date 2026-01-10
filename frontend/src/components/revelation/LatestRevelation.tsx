@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { Sparkles, History, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { Database } from '../../types/database';
+import type { AILevel } from '../../utils/revelationPrompts';
 
 interface LatestRevelationProps {
   onViewHistory: () => void;
-  onSeekRevelation: () => void;
+  onSeekRevelation: (level?: AILevel) => void;
   refreshTrigger?: number;
 }
 
@@ -15,6 +16,7 @@ export default function LatestRevelation({ onViewHistory, onSeekRevelation, refr
   const [revelation, setRevelation] = useState<Revelation | null>(null);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
+  const suggestionTypes = ['revelation_level1', 'revelation_level2', 'revelation_level3', 'revelation'];
 
   useEffect(() => {
     fetchLatestRevelation();
@@ -26,7 +28,7 @@ export default function LatestRevelation({ onViewHistory, onSeekRevelation, refr
       const { data, error } = await supabase
         .from('revelations')
         .select('*')
-        .eq('suggestion_type', 'revelation')
+        .in('suggestion_type', suggestionTypes)
         .order('created_at', { ascending: false })
         .limit(1);
 
@@ -162,7 +164,7 @@ export default function LatestRevelation({ onViewHistory, onSeekRevelation, refr
     // Show "Seek Revelation" button when no revelations exist
     return (
       <button
-        onClick={onSeekRevelation}
+        onClick={() => onSeekRevelation()}
         className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 hover:from-purple-700 hover:via-pink-700 hover:to-purple-700 text-white rounded-xl p-5 shadow-2xl transition-all transform hover:scale-[1.01] border border-purple-400/30"
       >
         <div className="flex items-center justify-between">
@@ -211,8 +213,7 @@ export default function LatestRevelation({ onViewHistory, onSeekRevelation, refr
             className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
           >
             <Sparkles size={16} />
-            <span className="hidden sm:inline">Seek New</span>
-            <span className="sm:hidden">New</span>
+            <span className="hidden sm:inline">Seek</span>
           </button>
           <button
             onClick={(e) => {

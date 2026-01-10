@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Dices, Loader2, Zap, History } from 'lucide-react';
+import { Dices, Loader2, Zap, History, Calendar, TrendingUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { buildNextMovePrompts, type RevelationContext } from '../../utils/revelationPrompts';
-import { useAuth } from '../../hooks/useAuth';
+import { buildNextMovePrompts, getSuggestionType, type RevelationContext, type AILevel } from '../../utils/revelationPrompts';
 import {
   getStartOfDayUTC,
   getEndOfDayUTC,
@@ -29,7 +28,26 @@ export default function NextTaskSuggestion({ onViewHistory }: NextTaskSuggestion
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { profile } = useAuth();
+  const [showLevelButtons, setShowLevelButtons] = useState(false);
+  const suggestionTypes = ['next_move_level1', 'next_move_level2', 'next_move_level3', 'next_task', 'next_move'];
+
+  const levelConfig = {
+    1: {
+      icon: Calendar,
+      title: 'L1: Selector',
+      gradient: 'from-blue-600 to-cyan-600',
+    },
+    2: {
+      icon: TrendingUp,
+      title: 'L2: Guide',
+      gradient: 'from-purple-600 to-pink-600',
+    },
+    3: {
+      icon: Zap,
+      title: 'L3: Revelation',
+      gradient: 'from-amber-600 to-orange-600',
+    },
+  } as const;
 
   useEffect(() => {
     fetchLatestSuggestion();
@@ -45,7 +63,7 @@ export default function NextTaskSuggestion({ onViewHistory }: NextTaskSuggestion
         .from('revelations')
         .select('*')
         .eq('user_id', session.user.id)
-        .eq('suggestion_type', 'next_task')
+        .in('suggestion_type', suggestionTypes)
         .order('created_at', { ascending: false })
         .limit(1);
 
@@ -283,9 +301,10 @@ export default function NextTaskSuggestion({ onViewHistory }: NextTaskSuggestion
     };
   };
 
-  const rollTask = async () => {
+  const rollTask = async (level: AILevel = 2) => {
     setLoading(true);
     setError(null);
+    setShowLevelButtons(false);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -296,7 +315,8 @@ export default function NextTaskSuggestion({ onViewHistory }: NextTaskSuggestion
       // Collect context
       const context = await collectContext(session.user.id);
 
-      const { systemPrompt, userPrompt } = buildNextMovePrompts(context);
+      const { systemPrompt, userPrompt } = buildNextMovePrompts(context, level);
+      const suggestionType = getSuggestionType('next_move', level);
 
       // Call Edge Function with prompts
       const { data, error: functionError } = await supabase.functions.invoke('revelation', {
@@ -304,7 +324,7 @@ export default function NextTaskSuggestion({ onViewHistory }: NextTaskSuggestion
           systemPrompt,
           userPrompt,
           provider: 'deepseek',
-          suggestionType: 'next_task'
+          suggestionType
         },
       });
 
@@ -329,13 +349,14 @@ export default function NextTaskSuggestion({ onViewHistory }: NextTaskSuggestion
         user_message: null,
         provider: 'deepseek',
         revelation_text: response.revelation,
-        suggestion_type: 'next_task',
+        suggestion_type: suggestionType,
         context_snapshot: {
           systemPrompt: response.systemPrompt,
           userPrompt: response.userPrompt,
           timestamp: new Date().toISOString(),
           timeOfDay: context.temporal.timeOfDay,
           streak: context.performance.streak.current,
+          level,
         },
       });
 
@@ -405,24 +426,45 @@ export default function NextTaskSuggestion({ onViewHistory }: NextTaskSuggestion
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={rollTask}
-            disabled={loading}
-            className="px-4 py-2 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 disabled:from-gray-600 disabled:to-gray-600 text-white text-sm font-bold rounded-lg transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 shadow-lg"
-          >
-            {loading ? (
-              <>
-                <Loader2 size={18} className="animate-spin" />
-                <span className="hidden sm:inline">Rolling...</span>
-              </>
-            ) : (
-              <>
-                <Dices size={18} />
-                <span className="hidden sm:inline">Roll</span>
-                <span className="sm:hidden">Roll</span>
-              </>
+          <div className="relative">
+            <button
+              onClick={() => setShowLevelButtons(!showLevelButtons)}
+              disabled={loading}
+              className="px-4 py-2 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 disabled:from-gray-600 disabled:to-gray-600 text-white text-sm font-bold rounded-lg transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 shadow-lg"
+            >
+              {loading ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  <span className="hidden sm:inline">Rolling...</span>
+                </>
+              ) : (
+                <>
+                  <Dices size={18} />
+                  <span className="hidden sm:inline">Roll</span>
+                </>
+              )}
+            </button>
+            {showLevelButtons && !loading && (
+              <div className="absolute top-full right-0 mt-2 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden min-w-[180px]">
+                {([1, 2, 3] as AILevel[]).map((level) => {
+                  const config = levelConfig[level];
+                  const Icon = config.icon;
+                  return (
+                    <button
+                      key={level}
+                      onClick={() => rollTask(level)}
+                      className="w-full px-4 py-3 hover:bg-slate-700 transition-colors flex items-center gap-3 text-left border-b border-slate-700 last:border-b-0"
+                    >
+                      <div className={`p-1.5 rounded bg-gradient-to-br ${config.gradient}`}>
+                        <Icon size={14} className="text-white" />
+                      </div>
+                      <span className="text-white text-sm font-medium">{config.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
             )}
-          </button>
+          </div>
           <button
             onClick={onViewHistory}
             className="p-2 bg-slate-700/50 hover:bg-slate-600/50 text-gray-300 text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5"

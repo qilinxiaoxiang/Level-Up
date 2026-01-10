@@ -905,7 +905,7 @@ export default function Goals() {
       {showNextMoveHistory && (
         <RevelationHistoryModal
           onClose={() => setShowNextMoveHistory(false)}
-          suggestionType="next_task"
+          suggestionType="next_move"
         />
       )}
     </div>

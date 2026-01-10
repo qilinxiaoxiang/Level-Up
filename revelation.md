@@ -50,7 +50,7 @@ Revelation is designed around four fundamental principles that transform how use
 
 ## Feature Name Rationale
 
-- **Name**: "Revelation" (chosen because "Oracle" is taken)
+- **Name**: "Revelation" (chosen because "Revelation" is taken)
 - **Concept**: A moment of divine clarity that reveals your destined path
 - **Tone**: Mystical guide, wise mentor, strategic ally
 - **Promise**: "You shall know what you must do"
@@ -552,7 +552,7 @@ export function RevelationPanel() {
         placeholder="Optional: Share your current state, energy level, or preferences..."
       />
       <button onClick={() => getRevelation(userMessage)} disabled={loading}>
-        {loading ? 'Consulting the Oracle...' : '🔮 Get Revelation'}
+        {loading ? 'Consulting the Revelation...' : '🔮 Get Revelation'}
       </button>
 
       {revelation && (
@@ -2110,9 +2110,9 @@ This is **re-enchantment with compassion** - making life meaningful by first mak
 
 # Revelation: Future Enhancements
 
-## Vision: The Autonomous Oracle
+## Vision: The Autonomous Revelation
 
-Transform Revelation from a guided advisor into an **autonomous oracle** that:
+Transform Revelation from a guided advisor into an **autonomous Revelation** that:
 - Sees your entire life context (calendar, commitments, real-world constraints)
 - Queries information it needs autonomously (MCP)
 - Reasons about complex scheduling and priorities
@@ -2720,7 +2720,7 @@ async function generateRevelationWithMCP(userId: string, userMessage: string) {
 #### 4. Enhanced System Prompt for MCP
 
 ```
-You are Revelation, a mystical oracle with AUTONOMOUS ACCESS to the hero's entire journey.
+You are Revelation, a mystical Revelation with AUTONOMOUS ACCESS to the hero's entire journey.
 
 You have tools to explore their data as deeply as needed. Don't just work with what's given -
 actively investigate to provide the most insightful guidance.
@@ -2890,7 +2890,7 @@ CREATE TABLE mcp_tool_usage (
 
 ## Conclusion
 
-These future enhancements transform Revelation from a static advisor into an **autonomous, context-aware oracle** that:
+These future enhancements transform Revelation from a static advisor into an **autonomous, context-aware Revelation** that:
 
 ### Calendar Integration Provides:
 ✅ Reality-based planning (respects actual schedule)
@@ -2912,6 +2912,6 @@ These future enhancements transform Revelation from a static advisor into an **a
 ⚡ **"I give you THE quest that fits your reality"**
 🌟 **"Your legend unfolds with perfect knowledge and timing"**
 
-This is the ultimate re-enchantment: an oracle that truly sees you, understands your journey, and guides you with both wisdom and knowledge of your real-world constraints.
+This is the ultimate re-enchantment: an Revelation that truly sees you, understands your journey, and guides you with both wisdom and knowledge of your real-world constraints.
 
 The mundane becomes magnificent because the guidance is both **epic and practical**.
