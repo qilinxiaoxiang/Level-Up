@@ -156,7 +156,7 @@ Level-Up/
 ### Prerequisites
 
 **For Web App:**
-- Node.js >= 20.0.0
+- Node.js >= 20.19.0
 - npm >= 9.0.0
 - Supabase account
 
