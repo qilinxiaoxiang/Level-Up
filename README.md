@@ -394,17 +394,39 @@ This section contains additional technical details for specific scenarios.
 
 1. **Update schema**: Edit `database/schema.sql`
 2. **Create migration**: `supabase/migrations/YYYYMMDDHHmmss_description.sql`
-3. **Deploy**:
    ```bash
-   supabase db push --linked
-   # If error "Remote migration versions not found":
-   supabase migration repair --status reverted <timestamp>
+   # Generate timestamp and create migration file
+   timestamp=$(date +"%Y%m%d%H%M%S")
+   touch supabase/migrations/${timestamp}_your_migration_name.sql
+   # Edit the file with your SQL changes
+   ```
+3. **Handle migration conflicts** (if remote has migrations not in local):
+   ```bash
+   # Check migration status
+   supabase migration list --linked
+
+   # If remote migrations are missing locally, create placeholder files
+   # (Replace TIMESTAMP with the actual timestamp from the list)
+   echo "-- Placeholder for remote migration" > supabase/migrations/TIMESTAMP_remote_migration.sql
+   ```
+4. **Deploy**:
+   ```bash
+   # Use auto-confirm to avoid interactive prompt
+   echo "Y" | supabase db push --linked
+
+   # Or manually confirm when prompted
    supabase db push --linked
    ```
-4. **⚠️ CRITICAL - Update types** (Vercel will fail without this):
+5. **⚠️ CRITICAL - Update types** (Vercel will fail without this):
    ```bash
    supabase gen types typescript --linked > frontend/src/types/database.ts
-   npx tsc --noEmit  # Verify no errors
+   cd frontend && npx tsc --noEmit  # Verify no errors
+   ```
+6. **Commit changes**:
+   ```bash
+   git add supabase/migrations/ database/schema.sql frontend/src/types/database.ts
+   git commit -m "Add database migration: [description]"
+   git push
    ```
 
 ---
