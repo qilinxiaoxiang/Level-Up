@@ -171,7 +171,7 @@ export default function Goals() {
 
       const { data: pomodoros, error } = await supabase
         .from('pomodoros')
-        .select('task_id, duration_minutes, actual_duration_minutes')
+        .select('task_id, linked_task_ids, duration_minutes, actual_duration_minutes')
         .eq('user_id', user.id)
         .gte('completed_at', dayStart)
         .lte('completed_at', dayEnd);
@@ -181,37 +181,22 @@ export default function Goals() {
         return;
       }
 
-      // Fetch task relationships to include time from linked one-time tasks
-      const { data: relationships } = await supabase
-        .from('task_relationships')
-        .select('onetime_task_id, daily_task_id')
-        .eq('user_id', user.id);
-
-      // Build a map: daily_task_id -> [onetime_task_ids]
-      const dailyToOnetimeMap: Record<string, string[]> = {};
-      (relationships || []).forEach((rel) => {
-        if (!dailyToOnetimeMap[rel.daily_task_id]) {
-          dailyToOnetimeMap[rel.daily_task_id] = [];
-        }
-        dailyToOnetimeMap[rel.daily_task_id].push(rel.onetime_task_id);
-      });
-
-      // Group by task_id and sum actual_duration_minutes (fallback to duration_minutes)
+      // Calculate progress using linked_task_ids (supports multiple tasks per pomodoro)
       const map: Record<string, number> = {};
       (pomodoros || []).forEach((p) => {
-        if (p.task_id) {
-          map[p.task_id] = (map[p.task_id] || 0) + (p.actual_duration_minutes || p.duration_minutes || 0);
-        }
-      });
+        const duration = p.actual_duration_minutes || p.duration_minutes || 0;
 
-      // For each daily task, add time from linked one-time tasks
-      Object.keys(dailyToOnetimeMap).forEach((dailyTaskId) => {
-        const linkedOnetimeIds = dailyToOnetimeMap[dailyTaskId];
-        linkedOnetimeIds.forEach((onetimeId) => {
-          const onetimeMinutes = map[onetimeId] || 0;
-          if (onetimeMinutes > 0) {
-            map[dailyTaskId] = (map[dailyTaskId] || 0) + onetimeMinutes;
-          }
+        // Get linked task IDs (prefer linked_task_ids, fallback to task_id for old data)
+        const rawLinkedIds = p.linked_task_ids;
+        const linkedIds = (Array.isArray(rawLinkedIds) && rawLinkedIds.length > 0)
+          ? (rawLinkedIds as string[])
+          : p.task_id
+            ? [p.task_id]
+            : [];
+
+        // Add this pomodoro's time to ALL linked tasks
+        linkedIds.forEach((taskId) => {
+          map[taskId] = (map[taskId] || 0) + duration;
         });
       });
 
