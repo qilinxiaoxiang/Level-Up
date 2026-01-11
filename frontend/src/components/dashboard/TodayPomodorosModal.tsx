@@ -15,6 +15,7 @@ interface TodayPomodorosModalProps {
   isCompleted?: boolean; // Whether the day has a check-in
   restCredits?: number; // Available rest credits
   onMakeUp?: () => void; // Callback when user makes up the day
+  onPomodoroUpdated?: () => void; // Notify parent to refresh task stats
 }
 
 interface PomodoroWithDetails {
@@ -61,7 +62,8 @@ const TodayPomodorosModal = ({
   specificDate,
   isCompleted = false,
   restCredits = 0,
-  onMakeUp
+  onMakeUp,
+  onPomodoroUpdated
 }: TodayPomodorosModalProps) => {
   const [pomodoros, setPomodoros] = useState<PomodoroWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
@@ -348,6 +350,7 @@ const TodayPomodorosModal = ({
 
       // Refresh the list
       await fetchTodayPomodoros();
+      onPomodoroUpdated?.();
       setDeletingPomodoroId(null);
     } catch (err) {
       console.error('Error deleting pomodoro:', err);
@@ -591,7 +594,10 @@ const TodayPomodorosModal = ({
         onClose={() => setEditingPomodoro(null)}
         userId={userId}
         pomodoro={editingPomodoro}
-        onSave={fetchTodayPomodoros}
+        onSave={async () => {
+          await fetchTodayPomodoros();
+          onPomodoroUpdated?.();
+        }}
       />
     </div>
   );

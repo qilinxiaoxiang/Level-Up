@@ -57,6 +57,7 @@ export default function Goals() {
   const {
     tasks,
     loading: tasksLoading,
+    fetchTasks,
     createTask,
     updateTask,
     deleteTask,
@@ -867,6 +868,7 @@ export default function Goals() {
           onClose={() => setShowTodayPomodoros(false)}
           userId={user.id}
           timezone={profile.timezone_name || 'Asia/Shanghai'}
+          onPomodoroUpdated={fetchTasks}
         />
       )}
 
