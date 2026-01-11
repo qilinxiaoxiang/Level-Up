@@ -88,6 +88,7 @@ export default function Goals() {
   const [showRevelationHistory, setShowRevelationHistory] = useState(false);
   const [showNextMoveHistory, setShowNextMoveHistory] = useState(false);
   const [revelationRefreshTrigger, setRevelationRefreshTrigger] = useState(0);
+  const [pomodoroRefreshKey, setPomodoroRefreshKey] = useState(0);
 
   // Request notification permission on page load
   useEffect(() => {
@@ -205,7 +206,7 @@ export default function Goals() {
     };
 
     fetchDailyProgress();
-  }, [user, profile?.daily_reset_time, profile?.timezone_name, profile]);
+  }, [user, profile?.daily_reset_time, profile?.timezone_name, profile, pomodoroRefreshKey]);
 
   useEffect(() => {
     const fetchLastPomodoros = async () => {
@@ -238,7 +239,7 @@ export default function Goals() {
     };
 
     fetchLastPomodoros();
-  }, [user, tasks]);
+  }, [user, tasks, pomodoroRefreshKey]);
 
   useEffect(() => {
     const fetchTimeSummary = async () => {
@@ -288,7 +289,7 @@ export default function Goals() {
     };
 
     fetchTimeSummary();
-  }, [user, profile?.daily_reset_time, profile?.timezone_name, profile]);
+  }, [user, profile?.daily_reset_time, profile?.timezone_name, profile, pomodoroRefreshKey]);
 
   // Removed: Don't auto-open pomodoro modal when session exists
   // Users will click the ActivePomodoroCard to open it
@@ -868,7 +869,10 @@ export default function Goals() {
           onClose={() => setShowTodayPomodoros(false)}
           userId={user.id}
           timezone={profile.timezone_name || 'Asia/Shanghai'}
-          onPomodoroUpdated={fetchTasks}
+          onPomodoroUpdated={() => {
+            fetchTasks();
+            setPomodoroRefreshKey((prev) => prev + 1);
+          }}
         />
       )}
 
