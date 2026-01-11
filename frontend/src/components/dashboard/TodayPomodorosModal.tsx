@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { X, Clock, Star } from 'lucide-react';
+import { X, Clock, Star, Pen, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getStartOfDayUTC, getEndOfDayUTC } from '../../utils/dateUtils';
 import type { Pomodoro, Task, PausePeriod } from '../../types';
+import EditPomodoroModal from './EditPomodoroModal';
 
 interface TodayPomodorosModalProps {
   isOpen: boolean;
@@ -64,6 +65,8 @@ const TodayPomodorosModal = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showMakeUpConfirm, setShowMakeUpConfirm] = useState(false);
+  const [editingPomodoro, setEditingPomodoro] = useState<PomodoroWithDetails | null>(null);
+  const [deletingPomodoroId, setDeletingPomodoroId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -313,6 +316,62 @@ const TodayPomodorosModal = ({
     );
   };
 
+  const handleDeletePomodoro = async (pomodoroId: string) => {
+    try {
+      // First, get the pomodoro data to update task progress
+      const { data: pomodoroData, error: fetchError } = await supabase
+        .from('pomodoros')
+        .select('task_id, duration_minutes, actual_duration_minutes')
+        .eq('id', pomodoroId)
+        .limit(1);
+
+      if (fetchError) throw fetchError;
+
+      const pomodoro = pomodoroData?.[0];
+      if (!pomodoro) {
+        throw new Error('Pomodoro not found');
+      }
+
+      const duration = pomodoro.actual_duration_minutes || pomodoro.duration_minutes;
+      const taskId = pomodoro.task_id;
+
+      // Update task progress if the pomodoro was linked to a task
+      if (taskId) {
+        const { data: taskData } = await supabase
+          .from('tasks')
+          .select('completed_pomodoros, completed_minutes, task_type')
+          .eq('id', taskId)
+          .limit(1);
+
+        const task = taskData?.[0];
+        if (task) {
+          await supabase
+            .from('tasks')
+            .update({
+              completed_pomodoros: Math.max((task.completed_pomodoros || 0) - 1, 0),
+              completed_minutes: Math.max((task.completed_minutes || 0) - duration, 0),
+            })
+            .eq('id', taskId);
+        }
+      }
+
+      // Delete the pomodoro
+      const { error: deleteError } = await supabase
+        .from('pomodoros')
+        .delete()
+        .eq('id', pomodoroId);
+
+      if (deleteError) throw deleteError;
+
+      // Refresh the list
+      await fetchTodayPomodoros();
+      setDeletingPomodoroId(null);
+    } catch (err) {
+      console.error('Error deleting pomodoro:', err);
+      setError('Failed to delete pomodoro. Please try again.');
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -378,10 +437,30 @@ const TodayPomodorosModal = ({
           {!loading && !error && pomodoros.map((pomodoro) => (
             <div
               key={pomodoro.id}
-              className="bg-slate-800/40 rounded-lg p-4 border border-slate-700/50 space-y-2"
+              className="bg-slate-800/40 rounded-lg p-4 border border-slate-700/50 space-y-2 relative"
             >
+              {/* Edit and Delete Buttons */}
+              <div className="absolute top-3 right-3 flex items-center gap-2">
+                <button
+                  onClick={() => setEditingPomodoro(pomodoro)}
+                  className="text-gray-400 hover:text-blue-400 transition-colors"
+                  title="Edit pomodoro"
+                  aria-label="Edit pomodoro"
+                >
+                  <Pen size={16} />
+                </button>
+                <button
+                  onClick={() => setDeletingPomodoroId(pomodoro.id)}
+                  className="text-gray-400 hover:text-red-400 transition-colors"
+                  title="Delete pomodoro"
+                  aria-label="Delete pomodoro"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+
               {/* Time Range */}
-              <div className="space-y-1">
+              <div className="space-y-1 pr-12">
                 <div className="flex items-center gap-2 text-sm text-blue-300">
                   <Clock size={14} />
                   <span className="font-medium">
@@ -492,6 +571,43 @@ const TodayPomodorosModal = ({
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      {deletingPomodoroId && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-2xl">
+          <div className="w-full max-w-sm bg-slate-800 rounded-xl border border-red-500/40 shadow-2xl p-6 space-y-4 mx-4">
+            <h4 className="text-lg font-semibold text-white">Delete Pomodoro</h4>
+            <p className="text-sm text-gray-300">
+              Are you sure you want to delete this pomodoro? This action cannot be undone.
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setDeletingPomodoroId(null)}
+                className="flex-1 px-4 py-2 bg-slate-700 text-gray-300 rounded-lg text-sm font-semibold hover:bg-slate-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeletePomodoro(deletingPomodoroId)}
+                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-semibold hover:bg-red-400 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Pomodoro Modal */}
+      <EditPomodoroModal
+        isOpen={!!editingPomodoro}
+        onClose={() => setEditingPomodoro(null)}
+        userId={userId}
+        pomodoro={editingPomodoro}
+        onSave={fetchTodayPomodoros}
+      />
     </div>
   );
 };
