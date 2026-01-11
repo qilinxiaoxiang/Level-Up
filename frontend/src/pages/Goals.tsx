@@ -171,7 +171,7 @@ export default function Goals() {
 
       const { data: pomodoros, error } = await supabase
         .from('pomodoros')
-        .select('task_id, duration_minutes')
+        .select('task_id, duration_minutes, actual_duration_minutes')
         .eq('user_id', user.id)
         .gte('completed_at', dayStart)
         .lte('completed_at', dayEnd);
@@ -196,11 +196,11 @@ export default function Goals() {
         dailyToOnetimeMap[rel.daily_task_id].push(rel.onetime_task_id);
       });
 
-      // Group by task_id and sum duration_minutes
+      // Group by task_id and sum actual_duration_minutes (fallback to duration_minutes)
       const map: Record<string, number> = {};
       (pomodoros || []).forEach((p) => {
         if (p.task_id) {
-          map[p.task_id] = (map[p.task_id] || 0) + (p.duration_minutes || 0);
+          map[p.task_id] = (map[p.task_id] || 0) + (p.actual_duration_minutes || p.duration_minutes || 0);
         }
       });
 
@@ -262,13 +262,13 @@ export default function Goals() {
         // Fetch today's pomodoros (using UTC timestamps for proper timezone handling)
         const { data: todayData } = await supabase
           .from('pomodoros')
-          .select('duration_minutes')
+          .select('duration_minutes, actual_duration_minutes')
           .eq('user_id', user.id)
           .gte('completed_at', getStartOfDayUTC())
           .lte('completed_at', getEndOfDayUTC());
 
         if (todayData) {
-          const total = todayData.reduce((sum, p) => sum + (p.duration_minutes || 0), 0);
+          const total = todayData.reduce((sum, p) => sum + (p.actual_duration_minutes || p.duration_minutes || 0), 0);
           setTodayMinutes(total);
         }
 
@@ -277,23 +277,23 @@ export default function Goals() {
 
         const { data: weekData } = await supabase
           .from('pomodoros')
-          .select('duration_minutes')
+          .select('duration_minutes, actual_duration_minutes')
           .eq('user_id', user.id)
           .gte('completed_at', getStartOfDayUTC(weekStartDate));
 
         if (weekData) {
-          const total = weekData.reduce((sum, p) => sum + (p.duration_minutes || 0), 0);
+          const total = weekData.reduce((sum, p) => sum + (p.actual_duration_minutes || p.duration_minutes || 0), 0);
           setWeekMinutes(total);
         }
 
         // Fetch total accumulated time (all-time)
         const { data: totalData } = await supabase
           .from('pomodoros')
-          .select('duration_minutes')
+          .select('duration_minutes, actual_duration_minutes')
           .eq('user_id', user.id);
 
         if (totalData) {
-          const total = totalData.reduce((sum, p) => sum + (p.duration_minutes || 0), 0);
+          const total = totalData.reduce((sum, p) => sum + (p.actual_duration_minutes || p.duration_minutes || 0), 0);
           setTotalMinutes(total);
         }
       } catch (error) {

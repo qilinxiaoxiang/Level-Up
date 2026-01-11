@@ -19,13 +19,13 @@ export default function TimeSummary() {
         // Fetch today's pomodoros (using UTC timestamps for proper timezone handling)
         const { data: todayData } = await supabase
           .from('pomodoros')
-          .select('duration_minutes')
+          .select('duration_minutes, actual_duration_minutes')
           .eq('user_id', user.id)
           .gte('completed_at', getStartOfDayUTC())
           .lte('completed_at', getEndOfDayUTC());
 
         if (todayData) {
-          const total = todayData.reduce((sum, p) => sum + (p.duration_minutes || 0), 0);
+          const total = todayData.reduce((sum, p) => sum + (p.actual_duration_minutes || p.duration_minutes || 0), 0);
           setTodayMinutes(total);
         }
 
@@ -34,12 +34,12 @@ export default function TimeSummary() {
 
         const { data: weekData } = await supabase
           .from('pomodoros')
-          .select('duration_minutes')
+          .select('duration_minutes, actual_duration_minutes')
           .eq('user_id', user.id)
           .gte('completed_at', getStartOfDayUTC(weekStartDate));
 
         if (weekData) {
-          const total = weekData.reduce((sum, p) => sum + (p.duration_minutes || 0), 0);
+          const total = weekData.reduce((sum, p) => sum + (p.actual_duration_minutes || p.duration_minutes || 0), 0);
           setWeekMinutes(total);
         }
       } catch (error) {
