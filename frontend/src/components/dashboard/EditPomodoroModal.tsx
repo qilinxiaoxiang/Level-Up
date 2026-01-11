@@ -17,6 +17,7 @@ interface EditPomodoroModalProps {
   pomodoro: {
     id: string;
     task_id: string | null;
+    linked_task_ids?: string[] | null;
     duration_minutes: number;
     actual_duration_minutes?: number | null;
     overtime_minutes?: number | null;
@@ -27,6 +28,7 @@ interface EditPomodoroModalProps {
     focus_rating: number | null;
     accomplishment_note: string | null;
     primaryTask?: Task;
+    linkedTasks?: Task[];
   } | null;
   onSave: () => void;
 }
@@ -35,7 +37,7 @@ const EditPomodoroModal = ({ isOpen, onClose, userId, pomodoro, onSave }: EditPo
   const [focusRating, setFocusRating] = useState<number>(1);
   const [accomplishmentNote, setAccomplishmentNote] = useState<string>('');
   const [actualDuration, setActualDuration] = useState<number>(0);
-  const [selectedTaskId, setSelectedTaskId] = useState<string>('');
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [tasks, setTasks] = useState<TaskOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +48,14 @@ const EditPomodoroModal = ({ isOpen, onClose, userId, pomodoro, onSave }: EditPo
       setFocusRating(pomodoro.focus_rating || 1);
       setAccomplishmentNote(pomodoro.accomplishment_note || '');
       setActualDuration(pomodoro.actual_duration_minutes || pomodoro.duration_minutes);
-      setSelectedTaskId(pomodoro.task_id || '');
+
+      // Initialize selected tasks from linked_task_ids or fallback to task_id
+      const initialTaskIds = pomodoro.linked_task_ids && pomodoro.linked_task_ids.length > 0
+        ? pomodoro.linked_task_ids
+        : pomodoro.task_id
+          ? [pomodoro.task_id]
+          : [];
+      setSelectedTaskIds(new Set(initialTaskIds));
 
       // Fetch all tasks for the task selector
       fetchTasks();
@@ -69,6 +78,16 @@ const EditPomodoroModal = ({ isOpen, onClose, userId, pomodoro, onSave }: EditPo
     }
   };
 
+  const toggleTask = (taskId: string) => {
+    const newSelected = new Set(selectedTaskIds);
+    if (newSelected.has(taskId)) {
+      newSelected.delete(taskId);
+    } else {
+      newSelected.add(taskId);
+    }
+    setSelectedTaskIds(newSelected);
+  };
+
   const handleSave = async () => {
     if (!pomodoro) return;
 
@@ -77,75 +96,54 @@ const EditPomodoroModal = ({ isOpen, onClose, userId, pomodoro, onSave }: EditPo
 
     try {
       const oldDuration = pomodoro.actual_duration_minutes || pomodoro.duration_minutes;
-      const oldTaskId = pomodoro.task_id;
-      const newTaskId = selectedTaskId || null;
+
+      // Get old linked task IDs (from linked_task_ids or fallback to task_id)
+      const oldTaskIds = pomodoro.linked_task_ids && pomodoro.linked_task_ids.length > 0
+        ? new Set(pomodoro.linked_task_ids)
+        : pomodoro.task_id
+          ? new Set([pomodoro.task_id])
+          : new Set<string>();
+
+      const newTaskIds = selectedTaskIds;
       const durationChanged = oldDuration !== actualDuration;
-      const taskChanged = oldTaskId !== newTaskId;
 
-      // Handle task progress updates
-      if (taskChanged) {
-        // Task changed - remove from old task and add to new task
-        if (oldTaskId) {
-          const { data: oldTaskData } = await supabase
-            .from('tasks')
-            .select('completed_pomodoros, completed_minutes, task_type')
-            .eq('id', oldTaskId)
-            .limit(1);
+      // Find tasks that were added, removed, or kept
+      const addedTaskIds = Array.from(newTaskIds).filter(id => !oldTaskIds.has(id));
+      const removedTaskIds = Array.from(oldTaskIds).filter(id => !newTaskIds.has(id));
+      const keptTaskIds = Array.from(newTaskIds).filter(id => oldTaskIds.has(id));
 
-          const oldTask = oldTaskData?.[0];
-          if (oldTask) {
-            await supabase
-              .from('tasks')
-              .update({
-                completed_pomodoros: Math.max((oldTask.completed_pomodoros || 0) - 1, 0),
-                completed_minutes: Math.max((oldTask.completed_minutes || 0) - oldDuration, 0),
-              })
-              .eq('id', oldTaskId);
-          }
-        }
-
-        if (newTaskId) {
-          const { data: newTaskData } = await supabase
-            .from('tasks')
-            .select('completed_pomodoros, completed_minutes, task_type, estimated_minutes, estimated_pomodoros')
-            .eq('id', newTaskId)
-            .limit(1);
-
-          const newTask = newTaskData?.[0];
-          if (newTask) {
-            const newCompletedPomodoros = (newTask.completed_pomodoros || 0) + 1;
-            const newCompletedMinutes = (newTask.completed_minutes || 0) + actualDuration;
-
-            // Check if one-time task is now complete
-            const isCompleted = newTask.task_type === 'onetime' &&
-              newTask.estimated_minutes &&
-              newCompletedMinutes >= newTask.estimated_minutes;
-
-            await supabase
-              .from('tasks')
-              .update({
-                completed_pomodoros: newCompletedPomodoros,
-                completed_minutes: newCompletedMinutes,
-                ...(newTask.task_type === 'onetime' && {
-                  is_completed: isCompleted,
-                  completed_at: isCompleted ? new Date().toISOString() : null,
-                }),
-              })
-              .eq('id', newTaskId);
-          }
-        }
-      } else if (durationChanged && oldTaskId) {
-        // Only duration changed, same task - adjust duration
+      // Remove progress from tasks that are no longer linked
+      for (const taskId of removedTaskIds) {
         const { data: taskData } = await supabase
           .from('tasks')
-          .select('completed_minutes, task_type, estimated_minutes')
-          .eq('id', oldTaskId)
+          .select('completed_pomodoros, completed_minutes, task_type')
+          .eq('id', taskId)
           .limit(1);
 
         const task = taskData?.[0];
         if (task) {
-          const durationDiff = actualDuration - oldDuration;
-          const newCompletedMinutes = (task.completed_minutes || 0) + durationDiff;
+          await supabase
+            .from('tasks')
+            .update({
+              completed_pomodoros: Math.max((task.completed_pomodoros || 0) - 1, 0),
+              completed_minutes: Math.max((task.completed_minutes || 0) - oldDuration, 0),
+            })
+            .eq('id', taskId);
+        }
+      }
+
+      // Add progress to newly linked tasks
+      for (const taskId of addedTaskIds) {
+        const { data: taskData } = await supabase
+          .from('tasks')
+          .select('completed_pomodoros, completed_minutes, task_type, estimated_minutes')
+          .eq('id', taskId)
+          .limit(1);
+
+        const task = taskData?.[0];
+        if (task) {
+          const newCompletedPomodoros = (task.completed_pomodoros || 0) + 1;
+          const newCompletedMinutes = (task.completed_minutes || 0) + actualDuration;
 
           // Check if one-time task is now complete
           const isCompleted = task.task_type === 'onetime' &&
@@ -155,24 +153,61 @@ const EditPomodoroModal = ({ isOpen, onClose, userId, pomodoro, onSave }: EditPo
           await supabase
             .from('tasks')
             .update({
-              completed_minutes: Math.max(newCompletedMinutes, 0),
+              completed_pomodoros: newCompletedPomodoros,
+              completed_minutes: newCompletedMinutes,
               ...(task.task_type === 'onetime' && {
                 is_completed: isCompleted,
                 completed_at: isCompleted ? new Date().toISOString() : null,
               }),
             })
-            .eq('id', oldTaskId);
+            .eq('id', taskId);
+        }
+      }
+
+      // Adjust duration for tasks that remained linked
+      if (durationChanged && keptTaskIds.length > 0) {
+        for (const taskId of keptTaskIds) {
+          const { data: taskData } = await supabase
+            .from('tasks')
+            .select('completed_minutes, task_type, estimated_minutes')
+            .eq('id', taskId)
+            .limit(1);
+
+          const task = taskData?.[0];
+          if (task) {
+            const durationDiff = actualDuration - oldDuration;
+            const newCompletedMinutes = (task.completed_minutes || 0) + durationDiff;
+
+            // Check if one-time task is now complete
+            const isCompleted = task.task_type === 'onetime' &&
+              task.estimated_minutes &&
+              newCompletedMinutes >= task.estimated_minutes;
+
+            await supabase
+              .from('tasks')
+              .update({
+                completed_minutes: Math.max(newCompletedMinutes, 0),
+                ...(task.task_type === 'onetime' && {
+                  is_completed: isCompleted,
+                  completed_at: isCompleted ? new Date().toISOString() : null,
+                }),
+              })
+              .eq('id', taskId);
+          }
         }
       }
 
       // Update the pomodoro
+      const linkedTaskIdsArray = Array.from(newTaskIds);
       const { error: updateError } = await supabase
         .from('pomodoros')
         .update({
           focus_rating: focusRating,
           accomplishment_note: accomplishmentNote,
           actual_duration_minutes: actualDuration,
-          task_id: newTaskId,
+          linked_task_ids: linkedTaskIdsArray,
+          // Keep task_id for backward compatibility (use first task or null)
+          task_id: linkedTaskIdsArray.length > 0 ? linkedTaskIdsArray[0] : null,
         })
         .eq('id', pomodoro.id);
 
@@ -261,27 +296,39 @@ const EditPomodoroModal = ({ isOpen, onClose, userId, pomodoro, onSave }: EditPo
             </p>
           </div>
 
-          {/* Linked Task */}
+          {/* Linked Tasks (Multi-select) */}
           <div>
-            <label htmlFor="task" className="block text-sm font-medium text-gray-300 mb-2">
-              Linked Task
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Linked Tasks {selectedTaskIds.size > 0 && `(${selectedTaskIds.size} selected)`}
             </label>
-            <select
-              id="task"
-              value={selectedTaskId}
-              onChange={(e) => setSelectedTaskId(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            >
-              <option value="">No task</option>
-              {tasks.map((task) => (
-                <option key={task.id} value={task.id}>
-                  {task.title} ({task.task_type === 'daily' ? 'Daily' : 'One-time'})
-                </option>
-              ))}
-            </select>
-            {pomodoro.primaryTask && (
+            <div className="bg-slate-800 border border-slate-700 rounded-lg max-h-48 overflow-y-auto">
+              {tasks.length === 0 ? (
+                <div className="px-4 py-3 text-sm text-gray-500">No tasks available</div>
+              ) : (
+                tasks.map((task) => (
+                  <label
+                    key={task.id}
+                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-700/50 cursor-pointer transition-colors border-b border-slate-700/50 last:border-b-0"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedTaskIds.has(task.id)}
+                      onChange={() => toggleTask(task.id)}
+                      className="w-4 h-4 bg-slate-700 border-slate-600 rounded text-purple-500 focus:ring-2 focus:ring-purple-500 focus:ring-offset-0"
+                    />
+                    <span className="flex-1 text-sm text-white">
+                      {task.title}
+                      <span className="ml-2 text-xs text-gray-500">
+                        ({task.task_type === 'daily' ? 'Daily' : 'One-time'})
+                      </span>
+                    </span>
+                  </label>
+                ))
+              )}
+            </div>
+            {pomodoro.linkedTasks && pomodoro.linkedTasks.length > 0 && (
               <p className="mt-1 text-xs text-gray-500">
-                Current: {pomodoro.primaryTask.title}
+                Currently: {pomodoro.linkedTasks.map(t => t.title).join(', ')}
               </p>
             )}
           </div>

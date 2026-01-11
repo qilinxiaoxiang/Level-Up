@@ -243,6 +243,7 @@ export type Database = {
           enemy_type: string | null
           focus_rating: number | null
           id: string
+          linked_task_ids: Json | null
           overtime_minutes: number | null
           pause_periods: Json | null
           started_at: string
@@ -260,6 +261,7 @@ export type Database = {
           enemy_type?: string | null
           focus_rating?: number | null
           id?: string
+          linked_task_ids?: Json | null
           overtime_minutes?: number | null
           pause_periods?: Json | null
           started_at: string
@@ -277,6 +279,7 @@ export type Database = {
           enemy_type?: string | null
           focus_rating?: number | null
           id?: string
+          linked_task_ids?: Json | null
           overtime_minutes?: number | null
           pause_periods?: Json | null
           started_at?: string

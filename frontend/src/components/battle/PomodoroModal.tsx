@@ -530,26 +530,7 @@ export default function PomodoroModal({
           : task.estimated_minutes ?? (task.estimated_pomodoros ? task.estimated_pomodoros * 25 : null);
       const isCompleted = targetPomodoros ? updatedMinutes >= targetPomodoros : false;
 
-      // Insert pomodoro record (single source of truth for time tracking)
-      const { error: insertError } = await supabase.from('pomodoros').insert({
-        user_id: user.id,
-        task_id: task.id,
-        duration_minutes: originalDurationMinutes,
-        actual_duration_minutes: actualDurationMinutes,
-        overtime_minutes: overtimeMinutes,
-        completion_type: completionType,
-        pause_periods: finalPausePeriods as any,
-        started_at: startTime.toISOString(),
-        completed_at: completedAt.toISOString(),
-        enemy_type: task.category || null,
-        enemy_name: task.category || null,
-        focus_rating: focusRating,
-        accomplishment_note: note.trim() ? note.trim() : null,
-      });
-
-      if (insertError) throw insertError;
-
-      // Fetch related tasks to update them as well
+      // Fetch related tasks BEFORE inserting to build linked_task_ids
       // Only update related tasks if current task is a one-time task
       // This ensures the link is unidirectional: one-time -> daily, not daily -> one-time
       const { data: relatedTasks } = await supabase
@@ -565,6 +546,29 @@ export default function PomodoroModal({
           }
         });
       }
+
+      // Build linked_task_ids array: current task + related tasks
+      const linkedTaskIds = [task.id, ...relatedTaskIds];
+
+      // Insert pomodoro record (single source of truth for time tracking)
+      const { error: insertError } = await supabase.from('pomodoros').insert({
+        user_id: user.id,
+        task_id: task.id, // Keep for backward compatibility
+        linked_task_ids: linkedTaskIds, // New: array of all linked tasks
+        duration_minutes: originalDurationMinutes,
+        actual_duration_minutes: actualDurationMinutes,
+        overtime_minutes: overtimeMinutes,
+        completion_type: completionType,
+        pause_periods: finalPausePeriods as any,
+        started_at: startTime.toISOString(),
+        completed_at: completedAt.toISOString(),
+        enemy_type: task.category || null,
+        enemy_name: task.category || null,
+        focus_rating: focusRating,
+        accomplishment_note: note.trim() ? note.trim() : null,
+      });
+
+      if (insertError) throw insertError;
 
       const isDaily = task.task_type === 'daily';
 

@@ -227,7 +227,8 @@ CREATE INDEX idx_daily_completions_date ON daily_task_completions(user_id, date)
 CREATE TABLE pomodoros (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL,
-  task_id UUID,
+  task_id UUID, -- deprecated: kept for backward compatibility, use linked_task_ids instead
+  linked_task_ids JSONB DEFAULT '[]'::jsonb, -- array of task UUIDs this pomodoro counts toward
 
   -- Pomodoro Details
   duration_minutes INTEGER NOT NULL, -- original planned duration

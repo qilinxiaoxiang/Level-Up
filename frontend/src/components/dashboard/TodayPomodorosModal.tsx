@@ -20,6 +20,7 @@ interface TodayPomodorosModalProps {
 interface PomodoroWithDetails {
   id: string;
   task_id: string | null;
+  linked_task_ids?: string[] | null;
   duration_minutes: number;
   actual_duration_minutes?: number | null;
   overtime_minutes?: number | null;
@@ -37,6 +38,7 @@ const convertToDetailedPomodoro = (pomodoro: any, primaryTask?: Task, linkedTask
   return {
     id: pomodoro.id,
     task_id: pomodoro.task_id,
+    linked_task_ids: pomodoro.linked_task_ids,
     duration_minutes: pomodoro.duration_minutes,
     actual_duration_minutes: pomodoro.actual_duration_minutes,
     overtime_minutes: pomodoro.overtime_minutes,
@@ -97,7 +99,7 @@ const TodayPomodorosModal = ({
       // 1. Fetch pomodoros for the date range
       const { data: pomodorosData, error: pomodorosError } = await supabase
         .from('pomodoros')
-        .select('id, task_id, duration_minutes, actual_duration_minutes, overtime_minutes, completion_type, pause_periods, started_at, completed_at, focus_rating, accomplishment_note')
+        .select('id, task_id, linked_task_ids, duration_minutes, actual_duration_minutes, overtime_minutes, completion_type, pause_periods, started_at, completed_at, focus_rating, accomplishment_note')
         .eq('user_id', userId)
         .gte('completed_at', dayStart)
         .lte('completed_at', dayEnd)
@@ -111,8 +113,18 @@ const TodayPomodorosModal = ({
         return;
       }
 
-      // 2. Get unique task IDs
-      const taskIds = [...new Set(pomodorosData.map(p => p.task_id).filter(Boolean))] as string[];
+      // 2. Get unique task IDs from linked_task_ids or fallback to task_id
+      const taskIds = [...new Set(
+        pomodorosData.flatMap(p => {
+          // Prefer linked_task_ids, fallback to task_id
+          if (p.linked_task_ids && Array.isArray(p.linked_task_ids) && p.linked_task_ids.length > 0) {
+            return p.linked_task_ids;
+          } else if (p.task_id) {
+            return [p.task_id];
+          }
+          return [];
+        })
+      )] as string[];
 
       // 3. Fetch all tasks
       const { data: tasksData, error: tasksError } = await supabase
@@ -126,59 +138,23 @@ const TodayPomodorosModal = ({
       const tasksMap = new Map<string, Task>();
       tasksData?.forEach(task => tasksMap.set(task.id, task as Task));
 
-      // 4. Fetch task relationships for all tasks
-      const { data: relationships, error: relationshipsError } = await supabase
-        .from('task_relationships')
-        .select('onetime_task_id, daily_task_id')
-        .or(taskIds.map(id => `onetime_task_id.eq.${id},daily_task_id.eq.${id}`).join(','));
-
-      if (relationshipsError) throw relationshipsError;
-
-      // Build relationships map: taskId -> related task IDs
-      const relationshipsMap = new Map<string, string[]>();
-      relationships?.forEach(rel => {
-        // For one-time task -> daily task relationship
-        if (!relationshipsMap.has(rel.onetime_task_id)) {
-          relationshipsMap.set(rel.onetime_task_id, []);
-        }
-        relationshipsMap.get(rel.onetime_task_id)!.push(rel.daily_task_id);
-
-        // For daily task -> one-time task relationship (reverse)
-        if (!relationshipsMap.has(rel.daily_task_id)) {
-          relationshipsMap.set(rel.daily_task_id, []);
-        }
-        relationshipsMap.get(rel.daily_task_id)!.push(rel.onetime_task_id);
-      });
-
-      // Get all unique related task IDs
-      const relatedTaskIds = [...new Set(
-        Array.from(relationshipsMap.values()).flat()
-      )];
-
-      // 5. Fetch linked task details
-      let linkedTasksMap = new Map<string, Task>();
-      if (relatedTaskIds.length > 0) {
-        const { data: linkedTasksData, error: linkedTasksError } = await supabase
-          .from('tasks')
-          .select('id, title, task_type, category')
-          .in('id', relatedTaskIds);
-
-        if (linkedTasksError) throw linkedTasksError;
-        linkedTasksData?.forEach(task => linkedTasksMap.set(task.id, task as Task));
-      }
-
-      // 6. Combine data
+      // 4. Combine data - use linked_task_ids to get all linked tasks
       const enrichedPomodoros: PomodoroWithDetails[] = pomodorosData.map(pomodoro => {
-        const primaryTask = pomodoro.task_id ? tasksMap.get(pomodoro.task_id) : undefined;
-        const relatedIds = pomodoro.task_id ? relationshipsMap.get(pomodoro.task_id) || [] : [];
+        // Get task IDs from linked_task_ids or fallback to task_id
+        const rawLinkedIds = pomodoro.linked_task_ids;
+        const linkedIds = (Array.isArray(rawLinkedIds) && rawLinkedIds.length > 0)
+          ? (rawLinkedIds as string[])
+          : pomodoro.task_id
+            ? [pomodoro.task_id]
+            : [];
 
-        // Only show linked tasks for one-time tasks (showing their linked daily tasks)
-        // Don't show linked tasks for daily tasks
-        const linkedTasks = primaryTask?.task_type === 'onetime'
-          ? relatedIds
-              .map(id => linkedTasksMap.get(id))
-              .filter(task => task && task.task_type === 'daily') as Task[]
-          : [];
+        // Get all linked tasks (filter out deleted tasks)
+        const linkedTasks = linkedIds
+          .map(id => tasksMap.get(id))
+          .filter(task => task !== undefined) as Task[];
+
+        // For backward compatibility, set primaryTask as first linked task
+        const primaryTask = linkedTasks.length > 0 ? linkedTasks[0] : undefined;
 
         return convertToDetailedPomodoro(pomodoro, primaryTask, linkedTasks);
       });
@@ -321,7 +297,7 @@ const TodayPomodorosModal = ({
       // First, get the pomodoro data to update task progress
       const { data: pomodoroData, error: fetchError } = await supabase
         .from('pomodoros')
-        .select('task_id, duration_minutes, actual_duration_minutes')
+        .select('task_id, linked_task_ids, duration_minutes, actual_duration_minutes')
         .eq('id', pomodoroId)
         .limit(1);
 
@@ -333,10 +309,17 @@ const TodayPomodorosModal = ({
       }
 
       const duration = pomodoro.actual_duration_minutes || pomodoro.duration_minutes;
-      const taskId = pomodoro.task_id;
 
-      // Update task progress if the pomodoro was linked to a task
-      if (taskId) {
+      // Get linked task IDs (prefer linked_task_ids, fallback to task_id)
+      const rawLinkedIds = pomodoro.linked_task_ids;
+      const linkedIds = (Array.isArray(rawLinkedIds) && rawLinkedIds.length > 0)
+        ? (rawLinkedIds as string[])
+        : pomodoro.task_id
+          ? [pomodoro.task_id]
+          : [];
+
+      // Update progress for all linked tasks
+      for (const taskId of linkedIds) {
         const { data: taskData } = await supabase
           .from('tasks')
           .select('completed_pomodoros, completed_minutes, task_type')
@@ -488,26 +471,28 @@ const TodayPomodorosModal = ({
 
               {/* Task Name(s) */}
               <div className="space-y-1">
-                {pomodoro.primaryTask && (
-                  <p className={`font-semibold ${getCategoryColor(pomodoro.primaryTask.category)}`}>
-                    {pomodoro.primaryTask.title}
+                {pomodoro.linkedTasks.length === 0 && (
+                  <p className="text-gray-500 italic">No linked tasks</p>
+                )}
+                {pomodoro.linkedTasks.length === 1 && (
+                  <p className={`font-semibold ${getCategoryColor(pomodoro.linkedTasks[0].category)}`}>
+                    {pomodoro.linkedTasks[0].title}
                   </p>
                 )}
-                {pomodoro.linkedTasks.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-1 text-sm">
-                    <span className="text-gray-500">🔗 Also:</span>
-                    {pomodoro.linkedTasks.map((task, idx) => (
-                      <span key={task.id}>
-                        <span className={getCategoryColor(task.category)}>{task.title}</span>
-                        {idx < pomodoro.linkedTasks.length - 1 && (
-                          <span className="text-gray-500">, </span>
-                        )}
-                      </span>
-                    ))}
+                {pomodoro.linkedTasks.length > 1 && (
+                  <div className="space-y-1">
+                    <span className="text-xs text-gray-400">🔗 Linked to {pomodoro.linkedTasks.length} tasks:</span>
+                    <div className="flex flex-wrap items-center gap-1 text-sm">
+                      {pomodoro.linkedTasks.map((task, idx) => (
+                        <span key={task.id}>
+                          <span className={`font-semibold ${getCategoryColor(task.category)}`}>{task.title}</span>
+                          {idx < pomodoro.linkedTasks.length - 1 && (
+                            <span className="text-gray-500">, </span>
+                          )}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                )}
-                {!pomodoro.primaryTask && pomodoro.linkedTasks.length === 0 && (
-                  <p className="text-gray-500 italic">Task deleted</p>
                 )}
               </div>
 

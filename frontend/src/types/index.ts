@@ -72,7 +72,8 @@ export interface PausePeriod {
 export interface Pomodoro {
   id: string;
   user_id: string | null;
-  task_id: string | null;
+  task_id: string | null; // deprecated: use linked_task_ids instead
+  linked_task_ids?: string[] | null; // array of task UUIDs this pomodoro counts toward
   duration_minutes: number;
   actual_duration_minutes?: number | null;
   overtime_minutes?: number | null;
